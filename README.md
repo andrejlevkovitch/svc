@@ -64,6 +64,8 @@ members and methods
 
 5. ImGUI
 
+6. Catch2
+
 
 ## Design
 

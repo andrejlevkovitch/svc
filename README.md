@@ -33,7 +33,7 @@ the information
 8. Scene must have functionality for ordering items. Need for set some custom
 order for item
 
-9. Items must have Shape (always convex)
+9. Items can have Shape
 
 10. Items can be grouped
 

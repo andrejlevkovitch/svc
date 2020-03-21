@@ -9,6 +9,21 @@
 #include <boost/qvm/swizzle.hpp>
 
 namespace svc {
+std::pair<float, float> getScale(const Matrix &mat) {
+  std::pair<float, float> xVec{mat.a[0][0], mat.a[1][0]};
+  std::pair<float, float> yVec{mat.a[0][1], mat.a[1][1]};
+
+  return {std::sqrt(std::pow(xVec.first, 2) + std::pow(xVec.second, 2)),
+          std::sqrt(std::pow(yVec.first, 2) + std::pow(yVec.second, 2))};
+}
+
+float getRotation(const Matrix &mat) {
+  auto [xFactor, yFactor] = getScale(mat);
+  float sinAngl           = mat.a[0][1] / yFactor;
+  float cosAngl           = mat.a[0][0] / xFactor;
+  return std::atan2(-sinAngl, cosAngl);
+}
+
 using ItemPtr  = ItemPtr;
 using Children = AbstractItem::Children;
 
@@ -53,8 +68,10 @@ public:
   }
 
   inline float getRotation(Point anchor) const noexcept {
-    // TODO implement
-    return 0;
+    Matrix mat         = matrix_;
+    Matrix translation = bq::translation_mat(anchor);
+    mat *= translation;
+    return svc::getRotation(mat);
   }
 
   inline void rotate(float angle, Point anchor) noexcept {
@@ -167,10 +184,9 @@ void AbstractItem::appendChild(ItemPtr child) noexcept {
   // before append to childs we must change matrix of child for save its Scene
   // position
   {
-    // FIXME problem with parent matricies
     Matrix childMatrix    = child->imp_->getMatrix();
     Matrix parentMatrix   = this->getSceneMatrix();
-    Matrix newChildMatrix = childMatrix - parentMatrix;
+    Matrix newChildMatrix = bq::inverse(parentMatrix) * childMatrix;
     child->imp_->setMatrix(newChildMatrix);
   }
 
@@ -206,7 +222,7 @@ Matrix AbstractItem::getSceneMatrix() const noexcept {
 
   if (this->parent_) {
     Matrix parentMatrix = this->parent_->getSceneMatrix();
-    matrix += parentMatrix;
+    matrix              = parentMatrix * matrix;
   }
 
   return matrix;

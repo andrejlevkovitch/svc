@@ -17,7 +17,7 @@
 namespace bg = boost::geometry;
 namespace bq = boost::qvm;
 
-// XXX need for use vector and matrix operations
+// XXX need for using vector and matrix operations
 using namespace bq;
 
 namespace svc {

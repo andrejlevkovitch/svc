@@ -5,18 +5,35 @@
 
 //
 
+#include <boost/geometry/io/io.hpp>
+#include <iostream>
 #include <svc/AbstractItem.hpp>
 
-#define CHECK_POINTS_EQUAL(first, second)                                      \
-  CHECK(Approx{(first).x()} == (second).x());                                  \
-  CHECK(Approx{(first).y()} == (second).y());
+// TODO write define for normalization
+inline double normalize2rad(double a) {
+  while (a < 0)
+    a += M_PI * 2;
+  while (a >= M_PI * 2)
+    a -= M_PI * 2;
+  return a;
+}
 
-#define ANGLE_GENERATOR() TO_RAD(GENERATE(take(1, random(-360, 360))))
+/**\param angle in radians
+ */
+#define NORM_ANGLE(angle) normalize2rad(angle)
+
+#define CHECK_POINTS_EQUAL(first, second)                                      \
+  CHECK(Approx{(first).x()}.epsilon(0.01) == (second).x());                    \
+  CHECK(Approx{(first).y()}.epsilon(0.01) == (second).y());
+
+// XXX not use 360 - because in this case we has a problem wiht normalizing
+// angle
+#define ANGLE_GENERATOR() TO_RAD(GENERATE(take(2, random(-359, 359))))
 
 #define POINT_GENERATOR()                                                      \
   svc::Point {                                                                 \
-    GENERATE(take(1, random(-1000.f, 1000.f))),                                \
-        GENERATE(take(1, random(-1000.f, 1000.f)))                             \
+    GENERATE(take(2, random(-1000.f, 1000.f))),                                \
+        GENERATE(take(2, random(-1000.f, 1000.f)))                             \
   }
 
 using ItemPtr = svc::ItemPtr;
@@ -70,11 +87,12 @@ SCENARIO("test Item", "[Item]") {
         float angle = ANGLE_GENERATOR();
         basicItem->rotate(angle);
 
-        // THEN("angle of Item must be same") {
-        //  float currentAngle = basicItem->getRotation();
+        THEN("angle of Item must be same") {
+          float currentAngle = basicItem->getRotation();
 
-        //  CHECK(Approx{currentAngle - prevAngle} == angle);
-        //}
+          CHECK(Approx{NORM_ANGLE(currentAngle - defaultParentAngle)} ==
+                NORM_ANGLE(angle));
+        }
 
         THEN("position must be same, because we rotated the Item around its "
              "position") {
@@ -87,11 +105,11 @@ SCENARIO("test Item", "[Item]") {
 
         basicItem->setRotation(angle);
 
-        // THEN("angle of Item must be equal to seted angle") {
-        //  float currentAngle = basicItem->getRotation();
+        THEN("angle of Item must be equal to seted angle") {
+          float currentAngle = basicItem->getRotation();
 
-        //  CHECK(Approx{currentAngle} == angle);
-        //}
+          CHECK(Approx{NORM_ANGLE(currentAngle)} == NORM_ANGLE(angle));
+        }
 
         THEN("position must be same, because we rotated the Item around its "
              "position") {
@@ -108,17 +126,19 @@ SCENARIO("test Item", "[Item]") {
         svc::Point anchor = POINT_GENERATOR();
         basicItem->rotate(angle, anchor);
 
-        THEN("check it") {
-          svc::Point currentPos = basicItem->getPos();
+        THEN("check rotation") {
+          float currentAngle = basicItem->getRotation(anchor);
 
-          svc::Point diff = currentPos - defaultParentPos;
-          // TODO
+          CHECK(Approx{NORM_ANGLE(currentAngle - defaultParentAngle)} ==
+                NORM_ANGLE(angle));
         }
 
         basicItem->setRotation(angle, anchor);
 
-        THEN("check it") {
-          // TODO
+        THEN("check rotation") {
+          float currentAngle = basicItem->getRotation();
+
+          CHECK(Approx{NORM_ANGLE(currentAngle)} == NORM_ANGLE(angle));
         }
       }
     }
@@ -148,6 +168,14 @@ SCENARIO("test Item", "[Item]") {
         svc::Point currentChildScenePos = childItem->getScenePos();
 
         CHECK_POINTS_EQUAL(defaultChildPoint, currentChildScenePos);
+      }
+      THEN("vectors between scene position of parent and child must have equal "
+           "length") {
+        svc::Point diff = prevChildScenePos - prevParentScenePos;
+
+        svc::Point childPos = childItem->getPos();
+
+        CHECK(Approx{bq::mag(childPos)} == bq::mag(diff));
       }
 
       WHEN("move parent") {
@@ -192,15 +220,6 @@ SCENARIO("test Item", "[Item]") {
         newItem->setScenePos(newItemScenePos);
         newItem->setRotation(defaultNewItemAngle);
 
-        THEN("difference between scene position of parent and child must be "
-             "equal to child position") {
-          svc::Point diff = prevChildScenePos - prevParentScenePos;
-
-          svc::Point childPos = childItem->getPos();
-
-          CHECK_POINTS_EQUAL(childPos, diff);
-        }
-
         WHEN("child change parent") {
           newItem->appendChild(childItem);
 
@@ -209,11 +228,11 @@ SCENARIO("test Item", "[Item]") {
             svc::Point newChildPos      = childItem->getPos();
             svc::Point newChildScenePos = childItem->getScenePos();
 
-            svc::Point diff = prevChildScenePos - newItemScenePos;
-
             CHECK_POINTS_EQUAL(newChildScenePos, prevChildScenePos);
 
-            CHECK_POINTS_EQUAL(diff, newChildPos);
+            svc::Point diff = prevChildScenePos - newItemScenePos;
+
+            CHECK(Approx{bq::mag(diff)}.epsilon(0.001) == bq::mag(newChildPos));
           }
         }
       }

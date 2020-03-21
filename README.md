@@ -47,6 +47,8 @@ and zooming
 14. Scene, View and Items must be modificable. We can inherite it, add new
 members and methods
 
+15. Minimalism
+
 
 ## Technologys
 

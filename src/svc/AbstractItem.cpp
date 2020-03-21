@@ -3,52 +3,228 @@
 #include "svc/AbstractItem.hpp"
 #include "asserts.hpp"
 #include "svc/Scene.hpp"
+#include <boost/qvm/map_mat_vec.hpp>
+#include <boost/qvm/map_vec_mat.hpp>
+#include <boost/qvm/mat_operations.hpp>
+#include <boost/qvm/swizzle.hpp>
 
 namespace svc {
-using ChildItemPtr = AbstractItem::ChildItemPtr;
+using ItemPtr  = ItemPtr;
+using Children = AbstractItem::Children;
+
+class AbstractItemImp {
+public:
+  AbstractItemImp() noexcept
+      : scene_{nullptr}
+      , matrix_{} {
+    matrix_ = bq::diag_mat(Vector{1, 1, 1});
+  }
+
+  ~AbstractItemImp() noexcept {
+#ifndef NDEBUG
+    scene_ = nullptr;
+#endif
+  }
+
+  inline Scene *getScene() const noexcept {
+    return scene_;
+  }
+
+  inline void setScene(Scene *scene) noexcept {
+    scene_ = scene;
+  }
+
+  inline Point getPos() const noexcept {
+    Vector pos{0, 0, 1};
+    pos = matrix_ * pos;
+    return bq::XY(pos);
+  }
+
+  inline void moveOn(Point diff) noexcept {
+    bq::translation(matrix_) += diff;
+  }
+
+  inline Matrix getMatrix() const noexcept {
+    return matrix_;
+  }
+
+  inline void setMatrix(Matrix matrix) noexcept {
+    matrix_ = std::move(matrix);
+  }
+
+  inline float getRotation(Point anchor) const noexcept {
+    // TODO implement
+    return 0;
+  }
+
+  inline void rotate(float angle, Point anchor) noexcept {
+    Matrix translationMat = bq::translation_mat(anchor);
+    Matrix rotationMat    = bq::rotz_mat<3>(angle);
+
+    Matrix newMat = bq::diag_mat(Vector{1, 1, 1});
+    newMat *= translationMat;
+    newMat *= rotationMat;
+    newMat *= bq::inverse(translationMat);
+
+    matrix_ *= newMat;
+  }
+
+  inline void setRotation(float angle, Point anchor) noexcept {
+    Matrix translationMat = bq::translation_mat(anchor);
+    Matrix rotationMat    = bq::rotz_mat<3>(angle);
+
+    Matrix newMat = bq::diag_mat(Vector{1, 1, 1});
+    newMat *= translationMat;
+    newMat *= rotationMat;
+    newMat *= bq::inverse(translationMat);
+
+    Point pos = this->getPos();
+    matrix_   = std::move(newMat);
+    this->moveOn(pos);
+  }
+
+private:
+  Scene *scene_;
+
+  /**\brief store information relatively to parent (if Item don't has any parent
+   * then the information is relative to Scene)
+   */
+  Matrix matrix_;
+};
 
 AbstractItem::AbstractItem() noexcept
-    : scene_{nullptr} {
+    : imp_{new AbstractItemImp{}} {
+}
+
+AbstractItem::~AbstractItem() noexcept {
+  std::for_each(children_.begin(), children_.end(), [](ItemPtr &item) {
+    item->parent_ = nullptr;
+  });
+
+#ifndef NDEBUG
+  parent_ = nullptr;
+  children_.clear();
+#endif
+
+  delete imp_;
 }
 
 Scene *AbstractItem::getScene() const noexcept {
-  return scene_;
+  return imp_->getScene();
 }
 
-AbstractItem *AbstractItem::parent() const noexcept {
+Point AbstractItem::getPos() const noexcept {
+  return imp_->getPos();
+}
+
+Point AbstractItem::getScenePos() const noexcept {
+  Point pos = this->getPos();
+
+  if (this->parent_) {
+    Matrix      parentMatrix = this->parent_->getSceneMatrix();
+    svc::Vector vec          = parentMatrix * bq::XY1(pos);
+    pos                      = bq::XY(vec);
+  }
+
+  return pos;
+}
+
+void AbstractItem::moveOn(Point diff) noexcept {
+  imp_->moveOn(diff);
+
+  // TODO notificate Scene about changing position of Item
+}
+
+void AbstractItem::setPos(Point pos) noexcept {
+  Point currentPos = imp_->getPos();
+  Point diff       = pos - currentPos;
+  imp_->moveOn(diff);
+}
+
+void AbstractItem::setScenePos(Point scenePos) noexcept {
+  Point currentPos = this->getScenePos();
+  Point diff       = scenePos - currentPos;
+  imp_->moveOn(diff);
+}
+
+AbstractItem *AbstractItem::getParent() const noexcept {
   return parent_;
 }
 
-const std::list<ChildItemPtr> &AbstractItem::children() const noexcept {
+Children AbstractItem::getChildren() const noexcept {
   return children_;
 }
 
-void AbstractItem::appendChild(ChildItemPtr child) noexcept {
+void AbstractItem::appendChild(ItemPtr child) noexcept {
   if (child.get() == nullptr) {
     return;
   }
 
-  if (child->parent()) {
-    child->parent_->removeChild(*child);
+  if (child->getParent()) {
+    child->parent_->removeChild(child);
+  }
+
+  // before append to childs we must change matrix of child for save its Scene
+  // position
+  {
+    // FIXME problem with parent matricies
+    Matrix childMatrix    = child->imp_->getMatrix();
+    Matrix parentMatrix   = this->getSceneMatrix();
+    Matrix newChildMatrix = childMatrix - parentMatrix;
+    child->imp_->setMatrix(newChildMatrix);
   }
 
   child->parent_ = this;
   this->children_.emplace_back(std::move(child));
 }
 
-void AbstractItem::removeChild(AbstractItem &child) noexcept {
-  ASSERT(this != child.parent(),
+void AbstractItem::removeChild(ItemPtr child) noexcept {
+  ASSERT(this == child->getParent(),
          "removing from children Item have different parent");
 
-  children_.remove_if([ptr = &child](const ChildItemPtr &item) {
-    if (item.get() == ptr) {
-      return true;
-    }
-    return false;
-  });
+  // at first we need change child, especially its matrix, because if the Item
+  // will be set to another parent (or set to Scene), we Item must save its
+  // Scene position
+  Matrix childSceneMatrix = child->getSceneMatrix();
+  child->parent_          = nullptr;
+
+  auto forRemove = std::find(children_.begin(), children_.end(), child);
+
+  DEBBUG_ASSERT(forRemove != children_.end(), "child not found");
+
+  children_.erase(forRemove);
+
+  child->imp_->setMatrix(std::move(childSceneMatrix));
+}
+
+Matrix AbstractItem::getMatrix() const noexcept {
+  return imp_->getMatrix();
+}
+
+Matrix AbstractItem::getSceneMatrix() const noexcept {
+  Matrix matrix = imp_->getMatrix();
+
+  if (this->parent_) {
+    Matrix parentMatrix = this->parent_->getSceneMatrix();
+    matrix += parentMatrix;
+  }
+
+  return matrix;
+}
+
+float AbstractItem::getRotation(Point anchor) const noexcept {
+  return imp_->getRotation(anchor);
+}
+
+void AbstractItem::rotate(float angle, Point anchor) noexcept {
+  imp_->rotate(angle, anchor);
+}
+
+void AbstractItem::setRotation(float angle, Point anchor) noexcept {
+  imp_->setRotation(angle, anchor);
 }
 
 void AbstractItem::setScene(Scene *scene) noexcept {
-  scene_ = scene;
+  imp_->setScene(scene);
 }
 } // namespace svc

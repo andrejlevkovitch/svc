@@ -10,66 +10,152 @@
 
 namespace svc {
 class Scene;
+class AbstractItemImp;
+
+class AbstractItem;
+using ItemPtr = std::shared_ptr<AbstractItem>;
 
 /**\brief provide functionality for describing some kind of Item on Scene.
  * Realised as Compositor
+ * \todo think about scaling - is this needed?
  */
-class AbstractItem : public std::enable_shared_from_this<AbstractItem> {
+class AbstractItem {
   friend Scene;
 
 public:
-  using ChildItemPtr = std::shared_ptr<AbstractItem>;
+  using Children = std::list<ItemPtr>;
 
   AbstractItem() noexcept;
-  virtual ~AbstractItem() noexcept = default;
+  virtual ~AbstractItem() noexcept;
 
   /**\return Scene with that the Item associated. Return nullptr if Item not
    * associated with any scene
+   *
    * \see Scene
    */
   Scene *getScene() const noexcept;
 
-  /**\return current position of Item on Scene
+  /**\brief move Item on diff relatively to current position
+   *
+   * \note change Scene position of all child Item-s
+   *
+   * \param diff vector to move
+   */
+  void moveOn(Point diff) noexcept;
+
+  /**\return position of Item in Scene koordinates
    *
    * \warning produce undefined beheviour if Item not associated with any Scene
    */
-  virtual Point getPos() const noexcept;
+  Point getScenePos() const noexcept;
 
-  /**\return bounding box which bounded all shape of the Item
+  /**\return current position of Item in parent koordinates (relatively to
+   * parent position). If Item not has a parent then return values will be as
+   * Scene kooridnate
+   *
+   * \see getScenePos
+   */
+  Point getPos() const noexcept;
+
+  /**\brief set position of the Item relatively to Scene
+   *
+   * \note change Scene position of all child Item-s
+   */
+  void setScenePos(Point scenePos) noexcept;
+
+  /**\brief set position of the Item relatively to parent. If the Item don't has
+   * a parent then result will be same as set Scene position
+   *
+   * \note change Scene position of all child Item-s
+   *
+   * \see setScenePos
+   */
+  void setPos(Point pos) noexcept;
+
+  /**\return bounding box which bounded all shape of the Item. Must be in item
+   * koordinates, so {0, 0} point is same to point returned by getPos function
+   *
+   * \see getPos
+   *
+   * \note all shape of Item must be in the bounding box. It is needed for
+   * queries by positions, intersections and collisions
+   *
+   * \note bounding box never transforms! If you rotate or scale your Item the
+   * bounding box will be same
    */
   virtual Box getBoundingBox() const noexcept = 0;
 
   /**\return parent of the Item or nullptr if Item not have any parent
    */
-  AbstractItem *parent() const noexcept;
+  AbstractItem *getParent() const noexcept;
 
   /**\return list of all leaf nodes of the Item (not includes leaf nodes of
    * children Items)
    */
-  const std::list<ChildItemPtr> &children() const noexcept;
+  Children getChildren() const noexcept;
 
   /**\brief append new child for the Item. If child already have parent, then
-   * ownership of the child will be moved from previous parent to the Item
+   * ownership of the child will be moved from previous parent to the Item. If
+   * parent has a Scene, then we child will be add to the Scene
+   *
+   * \note when child appends to parent then the child don't change own Scene
+   * position
    *
    * \warning if you append parent (or parent of parent) of the Item to children
    * it produce undefined behaviour
    */
-  void appendChild(ChildItemPtr child) noexcept;
+  void appendChild(ItemPtr child) noexcept;
 
-  /**\brief remove the child from children of the item
+  /**\brief remove the child from children of the item.
+   *
+   * \note it remove the Item from Scene
    *
    * \warning if Item for removing is not a child of the Item it produce
    * undefined behaviour
    */
-  void removeChild(AbstractItem &child) noexcept;
+  void removeChild(ItemPtr child) noexcept;
+
+  /**\return affine transformation matrix for the Item relatively to Scene
+   */
+  Matrix getSceneMatrix() const noexcept;
+
+  /**\return affine transformation matrix for the Item relatively to parent. If
+   * Item not has a parent it will be same as Scene matrix
+   *
+   * \see getSceneMatrix
+   */
+  Matrix getMatrix() const noexcept;
+
+  /**\return rotation angle in radians
+   *
+   * \param anchor in item koordinates
+   */
+  float getRotation(Point anchor = {0, 0}) const noexcept;
+
+  /**\brief rotate current Item
+   *
+   * \param angle in radians
+   *
+   * \param anchor in item koordinates
+   *
+   */
+  void rotate(float angle, Point anchor = {0, 0}) noexcept;
+
+  /**\brief set rotation of the Item relatively to parent
+   *
+   * \param angle in radians
+   *
+   * \param anchor in item koordinates
+   */
+  void setRotation(float angle, Point anchor = {0, 0}) noexcept;
 
 private:
   void setScene(Scene *scene) noexcept;
 
 private:
-  Scene *scene_;
+  AbstractItemImp *imp_;
 
-  AbstractItem *          parent_;
-  std::list<ChildItemPtr> children_;
+  AbstractItem *parent_;
+  Children      children_;
 };
 } // namespace svc

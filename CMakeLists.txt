@@ -14,6 +14,7 @@ find_package(Boost REQUIRED)
 
 set(SVC_SRC
   src/svc/Scene.cpp
+  src/svc/AbstractItem.cpp
   )
 
 add_library(${PROJECT_NAME} ${SVC_SRC})
@@ -25,4 +26,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 
 # add tests
-catch2_test_register(test_scene tests/test_scene.cpp)
+catch2_test_register(test_scene     tests/test_Scene.cpp)
+catch2_test_register(test_item      tests/test_Item.cpp)

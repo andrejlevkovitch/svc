@@ -6,6 +6,7 @@
 
 namespace svc {
 class SceneImp;
+class AbstractItem;
 
 /**\brief Scene provide 2D infinity space in cartesian koordinate system.
  * Provide functional for append, remove and move Items. Support quires

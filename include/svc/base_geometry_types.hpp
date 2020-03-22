@@ -14,6 +14,18 @@
 
 #define TO_RAD(angle) ((angle) * (M_PI / 180.))
 
+#define TWO_PI (M_PI * 2)
+/**\brief minimize radians angle, but save sign (so result angle can be
+ * negative)
+ */
+#define MINIMIZE_RADIANS(angle)                                                \
+  (((angle) / TWO_PI) - int((angle) / TWO_PI)) * TWO_PI
+/**\brief normalize angle in radians
+ *
+ * \return angle in radians between 0 and 2pi
+ */
+#define NORM_RADIANS(angle) MINIMIZE_RADIANS(MINIMIZE_RADIANS(angle) + TWO_PI)
+
 namespace bg = boost::geometry;
 namespace bq = boost::qvm;
 

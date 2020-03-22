@@ -1,40 +1,14 @@
 // test_Item.cpp
 
+// FIXME add tests for rotation, especially for Scene rotation
+
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
 //
 
-#include <boost/geometry/io/io.hpp>
-#include <iostream>
+#include "test_auxilary.hpp"
 #include <svc/AbstractItem.hpp>
-
-// TODO write define for normalization
-inline double normalize2rad(double a) {
-  while (a < 0)
-    a += M_PI * 2;
-  while (a >= M_PI * 2)
-    a -= M_PI * 2;
-  return a;
-}
-
-/**\param angle in radians
- */
-#define NORM_ANGLE(angle) normalize2rad(angle)
-
-#define CHECK_POINTS_EQUAL(first, second)                                      \
-  CHECK(Approx{(first).x()}.epsilon(0.01) == (second).x());                    \
-  CHECK(Approx{(first).y()}.epsilon(0.01) == (second).y());
-
-// XXX not use 360 - because in this case we has a problem wiht normalizing
-// angle
-#define ANGLE_GENERATOR() TO_RAD(GENERATE(take(2, random(-359, 359))))
-
-#define POINT_GENERATOR()                                                      \
-  svc::Point {                                                                 \
-    GENERATE(take(2, random(-1000.f, 1000.f))),                                \
-        GENERATE(take(2, random(-1000.f, 1000.f)))                             \
-  }
 
 using ItemPtr = svc::ItemPtr;
 
@@ -43,135 +17,214 @@ public:
   svc::Box getBoundingBox() const noexcept override {
     return svc::Box{svc::Point{-5, -5}, svc::Point{5, 5}};
   }
+
+  void accept([[maybe_unused]] svc::AbstractVisitor *visitor) override {
+  }
 };
 
 SCENARIO("test Item", "[Item]") {
-  GIVEN("basic Item") {
-    ItemPtr    basicItem          = std::make_shared<BasicItem>();
-    float      defaultParentAngle = ANGLE_GENERATOR();
-    svc::Point defaultParentPos   = POINT_GENERATOR();
-    basicItem->setRotation(defaultParentAngle);
-    basicItem->setPos(defaultParentPos);
+  GIVEN("one Item") {
+    ItemPtr    basicItem    = std::make_shared<BasicItem>();
+    float      defaultAngle = ANGLE_GENERATOR(FIRST_LEVEL_GENERATOR);
+    svc::Point defaultPos   = POINT_GENERATOR(FIRST_LEVEL_GENERATOR);
+    basicItem->setRotation(defaultAngle);
+    basicItem->setPos(defaultPos);
 
     THEN("item don't has associated Scene") {
       CHECK(basicItem->getScene() == nullptr);
     }
-
     THEN("item not has a parent") {
       CHECK(basicItem->getParent() == nullptr);
     }
-
     THEN("item don't has children") {
       CHECK(basicItem->getChildren().empty());
     }
 
-    WHEN("change position") {
-      svc::Point newPos = POINT_GENERATOR();
+    THEN("rotation angle and Scene rotation Angle are same") {
+      float angle      = basicItem->getRotation();
+      float sceneAngle = basicItem->getSceneRotation();
+
+      CHECK_ANGLES_EQUAL(angle, sceneAngle);
+      CHECK_ANGLES_EQUAL(defaultAngle, sceneAngle);
+    }
+
+    WHEN("set new position") {
+      svc::Point newPos = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
       basicItem->setPos(newPos);
 
-      WHEN("position right") {
+      THEN("getPos must return right value") {
         svc::Point pos = basicItem->getPos();
 
         CHECK_POINTS_EQUAL(pos, newPos);
+      }
+      THEN("Scene position must be equal to position, because Item don't has a "
+           "parent") {
+        svc::Point pos      = basicItem->getPos();
+        svc::Point scenePos = basicItem->getScenePos();
 
-        THEN("scene position equal to position") {
-          svc::Point scenePos = basicItem->getScenePos();
-
-          CHECK_POINTS_EQUAL(pos, scenePos);
-        }
+        CHECK_POINTS_EQUAL(pos, scenePos);
       }
     }
 
-    THEN("test rotation") {
-      WHEN("rotate around default anchor") {
-        float angle = ANGLE_GENERATOR();
-        basicItem->rotate(angle);
+    WHEN("set new Scene position") {
+      svc::Point newPos = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+      basicItem->setScenePos(newPos);
 
-        THEN("angle of Item must be same") {
-          float currentAngle = basicItem->getRotation();
+      THEN("getScenePos must return right value") {
+        svc::Point scenePos = basicItem->getScenePos();
 
-          CHECK(Approx{NORM_ANGLE(currentAngle - defaultParentAngle)} ==
-                NORM_ANGLE(angle));
-        }
-
-        THEN("position must be same, because we rotated the Item around its "
-             "position") {
-          svc::Point currentPos      = basicItem->getPos();
-          svc::Point currentScenePos = basicItem->getScenePos();
-
-          CHECK_POINTS_EQUAL(currentPos, defaultParentPos);
-          CHECK_POINTS_EQUAL(currentScenePos, defaultParentPos);
-        }
-
-        basicItem->setRotation(angle);
-
-        THEN("angle of Item must be equal to seted angle") {
-          float currentAngle = basicItem->getRotation();
-
-          CHECK(Approx{NORM_ANGLE(currentAngle)} == NORM_ANGLE(angle));
-        }
-
-        THEN("position must be same, because we rotated the Item around its "
-             "position") {
-          svc::Point currentPos      = basicItem->getPos();
-          svc::Point currentScenePos = basicItem->getScenePos();
-
-          CHECK_POINTS_EQUAL(currentPos, defaultParentPos);
-          CHECK_POINTS_EQUAL(currentScenePos, defaultParentPos);
-        }
+        CHECK_POINTS_EQUAL(newPos, scenePos);
       }
+      THEN("Scene position and position must be same, because Item don't has a "
+           "parent") {
+        svc::Point scenePos = basicItem->getScenePos();
+        svc::Point pos      = basicItem->getPos();
 
-      WHEN("rotation with anchor") {
-        float      angle  = ANGLE_GENERATOR();
-        svc::Point anchor = POINT_GENERATOR();
-        basicItem->rotate(angle, anchor);
-
-        THEN("check rotation") {
-          float currentAngle = basicItem->getRotation(anchor);
-
-          CHECK(Approx{NORM_ANGLE(currentAngle - defaultParentAngle)} ==
-                NORM_ANGLE(angle));
-        }
-
-        basicItem->setRotation(angle, anchor);
-
-        THEN("check rotation") {
-          float currentAngle = basicItem->getRotation();
-
-          CHECK(Approx{NORM_ANGLE(currentAngle)} == NORM_ANGLE(angle));
-        }
+        CHECK_POINTS_EQUAL(scenePos, pos);
       }
     }
 
-    GIVEN("some child for Item") {
-      ItemPtr    childItem         = std::make_shared<BasicItem>();
-      float      defaultChildAngle = ANGLE_GENERATOR();
-      svc::Point defaultChildPoint = POINT_GENERATOR();
-      childItem->setRotation(defaultChildAngle);
-      childItem->setPos(defaultChildPoint);
+    WHEN("move position") {
+      svc::Point vec = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+      basicItem->moveOn(vec);
 
-      basicItem->appendChild(childItem);
+      THEN("Scene position and position must be same, because Item don't has a "
+           "parent") {
+        svc::Point scenePos = basicItem->getScenePos();
+        svc::Point pos      = basicItem->getPos();
 
-      svc::Point prevParentPos      = basicItem->getPos();
-      svc::Point prevParentScenePos = basicItem->getScenePos();
+        CHECK_POINTS_EQUAL(scenePos, pos);
+      }
 
-      svc::Point prevChildPos      = childItem->getPos();
-      svc::Point prevChildScenePos = childItem->getScenePos();
+      THEN("length of Scene diff postion must be same as lenght of diff") {
+        svc::Point scenePos = basicItem->getScenePos();
+
+        svc::Point diff = scenePos - defaultPos;
+
+        CHECK(Approx{bq::mag(diff)} == bq::mag(vec));
+      }
+    }
+
+    WHEN("rotate around default anchor") {
+      float angle = ANGLE_GENERATOR(SECOND_LEVEL_GENERATOR);
+      basicItem->rotate(angle);
+
+      THEN("angle of Item must be sum of default and rotation angles") {
+        float currentAngle = basicItem->getRotation();
+
+        CHECK_ANGLES_EQUAL(currentAngle - defaultAngle, angle);
+      }
+
+      THEN("position must be same, because we rotated the Item around its "
+           "position") {
+        svc::Point currentPos      = basicItem->getPos();
+        svc::Point currentScenePos = basicItem->getScenePos();
+
+        CHECK_POINTS_EQUAL(currentPos, defaultPos);
+        CHECK_POINTS_EQUAL(currentScenePos, defaultPos);
+      }
+    }
+
+    WHEN("set rotation with default anchor") {
+      float angle = ANGLE_GENERATOR(SECOND_LEVEL_GENERATOR);
+      basicItem->setRotation(angle);
+
+      THEN("angle of Item must be equal to the angle") {
+        float currentAngle = basicItem->getRotation();
+
+        CHECK_ANGLES_EQUAL(currentAngle, angle);
+      }
+
+      THEN("position must be same, because we rotated the Item around its "
+           "position") {
+        svc::Point currentPos      = basicItem->getPos();
+        svc::Point currentScenePos = basicItem->getScenePos();
+
+        CHECK_POINTS_EQUAL(currentPos, defaultPos);
+        CHECK_POINTS_EQUAL(currentScenePos, defaultPos);
+      }
+    }
+
+    WHEN("set Scene rotation") {
+      float angle = ANGLE_GENERATOR(SECOND_LEVEL_GENERATOR);
+      basicItem->setSceneRotation(angle);
+
+      THEN("Scene angle and simple angle must be equal to setted angle") {
+        float currentAngle      = basicItem->getRotation();
+        float currentSceneAngle = basicItem->getSceneRotation();
+
+        CHECK_ANGLES_EQUAL(currentAngle, currentSceneAngle);
+        CHECK_ANGLES_EQUAL(currentAngle, angle);
+      }
+    }
+
+    WHEN("rotate with anchor") {
+      float      angle  = ANGLE_GENERATOR(SECOND_LEVEL_GENERATOR);
+      svc::Point anchor = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+      basicItem->rotate(angle, anchor);
+
+      THEN("rotation of the Item must be a sum of ratation of the angle and "
+           "default Item angle") {
+        float currentAngle = basicItem->getRotation(anchor);
+
+        CHECK_ANGLES_EQUAL(currentAngle - defaultAngle, angle);
+      }
+    }
+
+    WHEN("set rotation with anchor") {
+      float      angle  = ANGLE_GENERATOR(SECOND_LEVEL_GENERATOR);
+      svc::Point anchor = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+      basicItem->setRotation(angle, anchor);
+
+      THEN("rotation of the Item must be same to angle") {
+        float currentAngle = basicItem->getRotation();
+
+        CHECK_ANGLES_EQUAL(currentAngle, angle);
+      }
+    }
+  }
+
+  GIVEN("parent and child Item-s") {
+    ItemPtr parentItem = std::make_shared<BasicItem>();
+    ItemPtr childItem  = std::make_shared<BasicItem>();
+
+    float      defaultParentAngle     = ANGLE_GENERATOR(FIRST_LEVEL_GENERATOR);
+    svc::Point defaultParentScenePos  = POINT_GENERATOR(FIRST_LEVEL_GENERATOR);
+    float      defaultChildSceneAngle = ANGLE_GENERATOR(FIRST_LEVEL_GENERATOR);
+    svc::Point defaultChildScenePos   = POINT_GENERATOR(FIRST_LEVEL_GENERATOR);
+
+    parentItem->setRotation(defaultParentAngle);
+    parentItem->setScenePos(defaultParentScenePos);
+
+    childItem->setRotation(defaultChildSceneAngle);
+    childItem->setScenePos(defaultChildScenePos);
+
+    WHEN("add child to parent") {
+      parentItem->appendChild(childItem);
+
+      svc::Point defaultParentPos = parentItem->getPos();
+      svc::Point defaultChildPos  = childItem->getPos();
+
+      float defaultChildAngle = childItem->getRotation();
 
       THEN("child was be added to children") {
-        CHECK(basicItem->getChildren().size() == 1);
+        CHECK(parentItem->getChildren().size() == 1);
       }
-      THEN("child has parent equal to the Item") {
-        CHECK(childItem->getParent() == basicItem.get());
+      THEN("child has parent") {
+        CHECK(childItem->getParent() == parentItem.get());
       }
-      THEN("scene position of the child must be same as before") {
-        svc::Point currentChildScenePos = childItem->getScenePos();
+      THEN("scene position and scene angle of the child must be same as "
+           "before") {
+        svc::Point currentChildScenePos   = childItem->getScenePos();
+        float      currentChildSceneAngle = childItem->getSceneRotation();
 
-        CHECK_POINTS_EQUAL(defaultChildPoint, currentChildScenePos);
+        CHECK_POINTS_EQUAL(defaultChildScenePos, currentChildScenePos);
+
+        CHECK_ANGLES_EQUAL(currentChildSceneAngle, defaultChildSceneAngle);
       }
-      THEN("vectors between scene position of parent and child must have equal "
+      THEN("vector between scene position of parent and child must have equal "
            "length") {
-        svc::Point diff = prevChildScenePos - prevParentScenePos;
+        svc::Point diff = defaultChildScenePos - defaultParentScenePos;
 
         svc::Point childPos = childItem->getPos();
 
@@ -179,69 +232,72 @@ SCENARIO("test Item", "[Item]") {
       }
 
       WHEN("move parent") {
-        svc::Point diff = POINT_GENERATOR();
-        basicItem->moveOn(diff);
+        svc::Point diff = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+        parentItem->moveOn(diff);
 
         THEN("position of child Item must not change, but changed Scene "
              "position") {
           svc::Point newChildPos      = childItem->getPos();
           svc::Point newSceneChildPos = childItem->getScenePos();
 
-          CHECK_POINTS_EQUAL(prevChildPos, newChildPos);
+          CHECK_POINTS_EQUAL(defaultChildPos, newChildPos);
 
-          svc::Point childDiff = newSceneChildPos - prevChildScenePos;
+          svc::Point childDiff = newSceneChildPos - defaultChildScenePos;
 
           CHECK_POINTS_EQUAL(diff, childDiff);
         }
       }
 
       WHEN("set position for parent") {
-        svc::Point newParentPos = POINT_GENERATOR();
-        basicItem->setPos(newParentPos);
+        svc::Point newParentPos = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+        parentItem->setPos(newParentPos);
 
-        svc::Point parentPosDiff = newParentPos - prevParentPos;
+        svc::Point parentPosDiff = newParentPos - defaultParentPos;
 
         THEN("child change its postion, but not Scene position") {
-          svc::Point newChildPos = childItem->getPos();
+          svc::Point childPos = childItem->getPos();
 
-          CHECK_POINTS_EQUAL(prevChildPos, newChildPos);
+          CHECK_POINTS_EQUAL(defaultChildPos, childPos);
 
           svc::Point newChildScenePos = childItem->getScenePos();
-          svc::Point childPosDiff     = newChildScenePos - prevChildScenePos;
+          svc::Point childPosDiff     = newChildScenePos - defaultChildScenePos;
 
           CHECK_POINTS_EQUAL(childPosDiff, parentPosDiff);
         }
       }
 
-      GIVEN("new parent for child") {
-        svc::ItemPtr newItem             = std::make_shared<BasicItem>();
-        svc::Point   newItemScenePos     = POINT_GENERATOR();
-        float        defaultNewItemAngle = ANGLE_GENERATOR();
-        newItem->setScenePos(newItemScenePos);
-        newItem->setRotation(defaultNewItemAngle);
+      WHEN("rorate parent") {
+        float angle = ANGLE_GENERATOR(SECOND_LEVEL_GENERATOR);
+        parentItem->rotate(angle);
 
-        WHEN("child change parent") {
-          newItem->appendChild(childItem);
+        THEN("child not change its angle and position relative to parent, but "
+             "can change angle (if it's not 0) and position relative to "
+             "Scene") {
+          svc::Point currentChildPos   = childItem->getPos();
+          float      currentChildAngle = childItem->getRotation();
 
-          THEN("child must has same Scene position as before, but new position "
-               "relatively to parent") {
-            svc::Point newChildPos      = childItem->getPos();
-            svc::Point newChildScenePos = childItem->getScenePos();
+          CHECK_POINTS_EQUAL(currentChildPos, defaultChildPos);
+          CHECK_ANGLES_EQUAL(currentChildAngle, defaultChildAngle);
+        }
 
-            CHECK_POINTS_EQUAL(newChildScenePos, prevChildScenePos);
+        THEN("child Scene rotation must be change as parent rotation") {
+          // XXX if angle is 0 it is a problem for checking, becuase we can not
+          // approximate to 0
+          if (angle != 0) {
+            float currentSceneAngle = childItem->getSceneRotation();
 
-            svc::Point diff = prevChildScenePos - newItemScenePos;
+            float childDiff = currentSceneAngle - defaultChildSceneAngle;
 
-            CHECK(Approx{bq::mag(diff)}.epsilon(0.001) == bq::mag(newChildPos));
+            CHECK_ANGLES_EQUAL(childDiff, angle);
           }
         }
       }
 
       WHEN("remove child") {
-        basicItem->removeChild(childItem);
+        parentItem->removeChild(childItem);
 
         THEN("child removed from children") {
-          CHECK(basicItem->getChildren().empty());
+          CHECK(parentItem->getChildren().empty());
         }
 
         THEN("check that child don't has a parent") {
@@ -249,11 +305,118 @@ SCENARIO("test Item", "[Item]") {
         }
       }
 
+      WHEN("set Scene rotation angle for child") {
+        float angle = ANGLE_GENERATOR(SECOND_LEVEL_GENERATOR);
+        childItem->setSceneRotation(angle);
+
+        THEN("Scene rotation angle of the child must be equal to setted") {
+          float currentAngle = childItem->getSceneRotation();
+
+          // XXX because in case of angle == 0 we can not approximate
+          if (angle != 0) {
+            CHECK_ANGLES_EQUAL(currentAngle, angle);
+          }
+        }
+      }
+
       WHEN("remove parent") {
-        basicItem.reset();
+        parentItem.reset();
 
         THEN("child item must not has any parent") {
           CHECK(childItem->getParent() == nullptr);
+        }
+        THEN("child must has equal position and Scene position") {
+          svc::Point currentPos      = childItem->getPos();
+          svc::Point currentScenePos = childItem->getScenePos();
+          float      angle           = childItem->getSceneRotation();
+
+          CHECK_POINTS_EQUAL(currentPos, currentScenePos);
+
+          CHECK_POINTS_EQUAL(currentScenePos, defaultChildScenePos);
+
+          CHECK_ANGLES_EQUAL(angle, defaultChildSceneAngle);
+        }
+      }
+    }
+  }
+
+  GIVEN("parent and child Item-s") {
+    svc::ItemPtr parentItem = std::make_shared<BasicItem>();
+    svc::ItemPtr childItem  = std::make_shared<BasicItem>();
+
+    svc::Point parentScenePos = POINT_GENERATOR(FIRST_LEVEL_GENERATOR);
+    svc::Point childScenePos  = POINT_GENERATOR(FIRST_LEVEL_GENERATOR);
+
+    float parentAngle = ANGLE_GENERATOR(FIRST_LEVEL_GENERATOR);
+    float childAngle  = ANGLE_GENERATOR(FIRST_LEVEL_GENERATOR);
+
+    parentItem->setScenePos(parentScenePos);
+    parentItem->setRotation(parentAngle);
+
+    childItem->setScenePos(childScenePos);
+    childItem->setRotation(childAngle);
+
+    parentItem->appendChild(childItem);
+
+    svc::Point childPos = childItem->getPos();
+
+    GIVEN("third Item") {
+      svc::ItemPtr thirdItem = std::make_shared<BasicItem>();
+
+      svc::Point defaultThirdScenePos = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+      float      defaultThirdAngle    = ANGLE_GENERATOR(SECOND_LEVEL_GENERATOR);
+
+      thirdItem->setScenePos(defaultThirdScenePos);
+      thirdItem->setRotation(defaultThirdAngle);
+
+      WHEN("add new child for parent") {
+        parentItem->appendChild(thirdItem);
+
+        THEN("parent has two children") {
+          CHECK(parentItem->getChildren().size() == 2);
+        }
+      }
+
+      WHEN("child change parent") {
+        thirdItem->appendChild(childItem);
+
+        THEN("parent Item already not has any children") {
+          CHECK(parentItem->getChildren().empty());
+        }
+        THEN("third Item has one child") {
+          CHECK(thirdItem->getChildren().size() == 1);
+        }
+        THEN("child has new parent") {
+          CHECK(childItem->getParent() == thirdItem.get());
+        }
+
+        THEN("child must has same Scene position as before, but new position "
+             "relatively to parent") {
+          svc::Point newChildPos      = childItem->getPos();
+          svc::Point newChildScenePos = childItem->getScenePos();
+
+          CHECK_POINTS_EQUAL(newChildScenePos, childScenePos);
+
+          svc::Point diff = childScenePos - defaultThirdScenePos;
+
+          CHECK(Approx{bq::mag(diff)}.epsilon(0.01) == bq::mag(newChildPos));
+        }
+      }
+
+      WHEN("add parent for parent Item") {
+        thirdItem->appendChild(parentItem);
+
+        THEN("parent now also has a parent") {
+          CHECK(parentItem->getParent() == thirdItem.get());
+        }
+
+        THEN("child don't change its position (relative to parent or relative "
+             "to Scene)") {
+          svc::Point currentPos      = childItem->getPos();
+          svc::Point currentScenePos = childItem->getScenePos();
+
+          CHECK_POINTS_EQUAL(currentPos, childPos);
+          CHECK_POINTS_EQUAL(currentScenePos, childScenePos);
         }
       }
     }

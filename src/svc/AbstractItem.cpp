@@ -114,9 +114,11 @@ AbstractItem::AbstractItem() noexcept
 }
 
 AbstractItem::~AbstractItem() noexcept {
-  std::for_each(children_.begin(), children_.end(), [](ItemPtr &item) {
-    item->parent_ = nullptr;
-  });
+  Children children = this->children_;
+  std::for_each(
+      children.begin(),
+      children.end(),
+      std::bind(&AbstractItem::removeChild, this, std::placeholders::_1));
 
 #ifndef NDEBUG
   parent_ = nullptr;
@@ -195,8 +197,7 @@ void AbstractItem::appendChild(ItemPtr child) noexcept {
 }
 
 void AbstractItem::removeChild(ItemPtr child) noexcept {
-  ASSERT(this == child->getParent(),
-         "removing from children Item have different parent");
+  ASSERT(this == child->getParent(), "child has different parent");
 
   // at first we need change child, especially its matrix, because if the Item
   // will be set to another parent (or set to Scene), we Item must save its
@@ -229,7 +230,16 @@ Matrix AbstractItem::getSceneMatrix() const noexcept {
 }
 
 float AbstractItem::getRotation(Point anchor) const noexcept {
-  return imp_->getRotation(anchor);
+  float angle = imp_->getRotation(anchor);
+  return NORM_RADIANS(angle);
+}
+
+float AbstractItem::getSceneRotation(Point anchor) const noexcept {
+  Matrix mat         = this->getSceneMatrix();
+  Matrix translation = bq::translation_mat(anchor);
+  mat *= translation;
+  float angle = svc::getRotation(mat);
+  return NORM_RADIANS(angle);
 }
 
 void AbstractItem::rotate(float angle, Point anchor) noexcept {
@@ -238,6 +248,26 @@ void AbstractItem::rotate(float angle, Point anchor) noexcept {
 
 void AbstractItem::setRotation(float angle, Point anchor) noexcept {
   imp_->setRotation(angle, anchor);
+}
+
+void AbstractItem::setSceneRotation(float angle, Point anchor) noexcept {
+  // TODO not right!
+  Matrix translationMat = bq::translation_mat(anchor);
+  Matrix rotationMat    = bq::rotz_mat<3>(angle);
+
+  Matrix newMat = bq::diag_mat(Vector{1, 1, 1});
+  newMat *= translationMat;
+  newMat *= rotationMat;
+  newMat *= bq::inverse(translationMat);
+
+  if (this->parent_) {
+    Matrix parentMatrix = this->parent_->getSceneMatrix();
+    newMat *= bq::inverse(parentMatrix);
+  }
+
+  Point pos = this->getPos();
+  imp_->setMatrix(std::move(newMat));
+  this->moveOn(pos);
 }
 
 void AbstractItem::setScene(Scene *scene) noexcept {

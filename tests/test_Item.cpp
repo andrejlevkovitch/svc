@@ -303,6 +303,12 @@ SCENARIO("test Item", "[Item]") {
         THEN("check that child don't has a parent") {
           CHECK(childItem->getParent() == nullptr);
         }
+
+        WHEN("try remove again") {
+          THEN("produce exeption") {
+            CHECK_THROWS(parentItem->removeChild(childItem));
+          }
+        }
       }
 
       WHEN("set Scene rotation angle for child") {
@@ -335,6 +341,14 @@ SCENARIO("test Item", "[Item]") {
           CHECK_POINTS_EQUAL(currentScenePos, defaultChildScenePos);
 
           CHECK_ANGLES_EQUAL(angle, defaultChildSceneAngle);
+        }
+      }
+
+      WHEN("try remove wrong child") {
+        THEN("it must produce exception") {
+          CHECK_THROWS(childItem->removeChild(parentItem));
+          CHECK_THROWS(parentItem->removeChild(parentItem));
+          CHECK_THROWS(parentItem->removeChild({}));
         }
       }
     }

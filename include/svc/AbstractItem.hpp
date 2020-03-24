@@ -158,12 +158,11 @@ public:
 
   /**\brief remove the child from children of the item.
    *
-   * \note it remove the Item from Scene
+   * \throw exception if child can not be removed
    *
-   * \warning if Item for removing is not a child of the Item it produce
-   * undefined behaviour
+   * \note it remove the Item from Scene
    */
-  void removeChild(ItemPtr child) noexcept;
+  void removeChild(ItemPtr child);
 
 private:
   void setScene(Scene *scene) noexcept;

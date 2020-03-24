@@ -23,6 +23,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_link_libraries(${PROJECT_NAME} PRIVATE
   Boost::boost
   )
+if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
+  target_compile_options(${PROJECT_NAME} PUBLIC -DCOLORIZED)
+endif()
 
 
 # add tests

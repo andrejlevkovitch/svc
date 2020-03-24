@@ -2,6 +2,7 @@
 
 #include "svc/AbstractItem.hpp"
 #include "asserts.hpp"
+#include "logs.hpp"
 #include "svc/Scene.hpp"
 #include <boost/qvm/map_mat_vec.hpp>
 #include <boost/qvm/map_vec_mat.hpp>
@@ -196,8 +197,10 @@ void AbstractItem::appendChild(ItemPtr child) noexcept {
   this->children_.emplace_back(std::move(child));
 }
 
-void AbstractItem::removeChild(ItemPtr child) noexcept {
-  ASSERT(this == child->getParent(), "child has different parent");
+void AbstractItem::removeChild(ItemPtr child) {
+  if (child.get() == nullptr || this != child->parent_) {
+    LOG_THROW(std::runtime_error, "child has different parent");
+  }
 
   // at first we need change child, especially its matrix, because if the Item
   // will be set to another parent (or set to Scene), we Item must save its

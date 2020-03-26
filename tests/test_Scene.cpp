@@ -352,4 +352,163 @@ SCENARIO("test Scene", "[Scene]") {
       }
     }
   }
+
+  GIVEN("Scene with Items in same place") {
+    std::shared_ptr<svc::Scene> scene = std::make_shared<svc::Scene>();
+
+    svc::Point initialPoint = POINT_GENERATOR(FIRST_LEVEL_GENERATOR);
+
+    svc::ItemPtr firstItem = std::make_shared<BasicItem>();
+    firstItem->setScenePos(initialPoint);
+
+    svc::ItemPtr secondItem = std::make_shared<BasicItem>();
+    secondItem->setScenePos(initialPoint);
+
+    scene->appendItem(firstItem);
+    scene->appendItem(secondItem);
+
+    WHEN("query by point") {
+      svc::ItemList list = scene->query(initialPoint);
+
+      THEN("list must contains both Items") {
+        REQUIRE(list.size() == 2);
+        CHECK(list.front() != list.back());
+      }
+    }
+  }
+
+  GIVEN("Scene with several Items in different places") {
+    std::shared_ptr<svc::Scene> scene = std::make_shared<svc::Scene>();
+
+    svc::ItemPtr firstItem = std::make_shared<BasicItem>();
+    svc::Point   firstInitialPoint{10, 10};
+    firstItem->setScenePos(firstInitialPoint);
+
+    svc::ItemPtr secondItem = std::make_shared<BasicItem>();
+    svc::Point   secondInitialPoint{50, 50};
+    secondItem->setScenePos(secondInitialPoint);
+
+    scene->appendItem(firstItem);
+    scene->appendItem(secondItem);
+
+    WHEN("get Item by point query") {
+      svc::ItemList list = scene->query(firstInitialPoint);
+
+      THEN("the list must contains one Item (first)") {
+        REQUIRE(list.size() == 1);
+        CHECK(list.front() == firstItem);
+      }
+    }
+
+    WHEN("get Item by box query (intersects)") {
+      WHEN("Box less then bounding box of Item") {
+        svc::Box      box{{9, 9}, {11, 11}};
+        svc::ItemList list =
+            scene->query(box, svc::Scene::SpatialIndex::Intersects);
+
+        THEN("list must contains first Item") {
+          REQUIRE(list.size() == 1);
+          CHECK(list.front() == firstItem);
+        }
+      }
+
+      WHEN("Box intersects with bounding boxes of two Items") {
+        svc::Box      box{firstItem->getScenePos(), secondItem->getScenePos()};
+        svc::ItemList list =
+            scene->query(box, svc::Scene::SpatialIndex::Intersects);
+
+        THEN("list must contains both Items") {
+          REQUIRE(list.size() == 2);
+          CHECK(list.front() != list.back());
+        }
+      }
+
+      WHEN("Box contains both Items") {
+        svc::Box      box{{0, 0}, {60, 60}};
+        svc::ItemList list =
+            scene->query(box, svc::Scene::SpatialIndex::Intersects);
+
+        THEN("list must contains both Items") {
+          REQUIRE(list.size() == 2);
+          CHECK(list.front() != list.back());
+        }
+      }
+    }
+
+    WHEN("get Item by box query (within)") {
+      WHEN("Box less then bounding box of Item") {
+        svc::Box      box{{9, 9}, {11, 11}};
+        svc::ItemList list =
+            scene->query(box, svc::Scene::SpatialIndex::Within);
+
+        THEN("list must be empty") {
+          REQUIRE(list.size() == 0);
+        }
+      }
+
+      WHEN("Box intersects with bounding boxes of two Items") {
+        svc::Box      box{firstItem->getScenePos(), secondItem->getScenePos()};
+        svc::ItemList list =
+            scene->query(box, svc::Scene::SpatialIndex::Within);
+
+        THEN("list must be empty") {
+          REQUIRE(list.size() == 0);
+        }
+      }
+
+      WHEN("Box contains both Items") {
+        svc::Box      box{{0, 0}, {60, 60}};
+        svc::ItemList list =
+            scene->query(box, svc::Scene::SpatialIndex::Within);
+
+        THEN("list must contains both Items") {
+          REQUIRE(list.size() == 2);
+          CHECK(list.front() != list.back());
+        }
+      }
+    }
+  }
+
+  GIVEN("Scene with one Item") {
+    std::shared_ptr<svc::Scene> scene = std::make_shared<svc::Scene>();
+
+    svc::ItemPtr item         = std::make_shared<BasicItem>();
+    svc::Point   initialPoint = POINT_GENERATOR(FIRST_LEVEL_GENERATOR);
+    item->setScenePos(initialPoint);
+
+    scene->appendItem(item);
+
+    //  WHEN("move position") {
+    //    svc::Point diff = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+
+    //    bool byScene = GENERATE(false, true);
+    //    if (byScene) {
+    //      scene->moveItem(item, diff);
+    //    } else {
+    //      item->moveOn(diff);
+    //    }
+
+    //    THEN("Scene must contains only one Item") {
+    //      CHECK(scene->count() == 1);
+    //    }
+
+    //    THEN("we must get the Item by new position") {
+    //      svc::ItemList list = scene->query(initialPoint + diff);
+
+    //      CHECK(list.size() == 1);
+    //    }
+
+    //    THEN("if diff was more then diagonal of bounding box, then we can not
+    //    "
+    //         "get the Item by previous position") {
+    //      float diag       = bq::mag(svc::Point{10, 10});
+    //      float diffLenght = bq::mag(diff);
+
+    //      if (diag > diffLenght) {
+    //        svc::ItemList list = scene->query(initialPoint);
+    //        CHECK(list.size() == 0);
+    //      }
+    //    }
+    //  }
+  }
 }

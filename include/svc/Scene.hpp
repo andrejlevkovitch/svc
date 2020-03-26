@@ -5,20 +5,30 @@
 #pragma once
 
 #include "svc/base_geometry_types.hpp"
+#include <list>
 #include <memory>
 
 namespace svc {
 class SceneImp;
 
+class AbstractVisitor;
+
 class AbstractItem;
 using ItemPtr = std::shared_ptr<AbstractItem>;
+
+using ItemList = std::list<ItemPtr>;
 
 /**\brief Scene provide 2D infinity space in cartesian koordinate system.
  * Provide functional for append, remove and move Items. Support quires
  * operations, saving and restoring
+ *
+ * \todo think about iterator for Items. Is it needed? How it must iterate the
+ * Scene? Only main Items? Or all? I think better use visitor instead
  */
 class Scene {
 public:
+  enum class SpatialIndex { Intersects, Within };
+
   Scene() noexcept;
   virtual ~Scene() noexcept;
 
@@ -48,6 +58,12 @@ public:
    */
   void removeItem(ItemPtr &item);
 
+  /**\brief move Item from the Scene to new position
+   *
+   * \param diff vector for change current position
+   */
+  void moveItem(ItemPtr &item, Point diff);
+
   /**\return count of items
    */
   size_t count() const noexcept;
@@ -62,6 +78,20 @@ public:
    * return invalid Box
    */
   Box bounds() const noexcept;
+
+  /**\brief spatial query by Point
+   */
+  ItemList query(Point pos) const noexcept;
+
+  /**\brief spatial query by Box
+   */
+  ItemList query(Box box, SpatialIndex index = SpatialIndex::Intersects) const
+      noexcept;
+
+  /**\brief iterate all main Items (without parents) and call accept method.
+   * Highly recomended use visitor for iterate Items
+   */
+  void accept(AbstractVisitor *visitor);
 
 private:
   SceneImp *imp_;

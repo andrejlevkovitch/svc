@@ -8,6 +8,8 @@
 //
 
 #include "test_auxilary.hpp"
+#include <boost/geometry/algorithms/transform.hpp>
+#include <boost/geometry/strategies/transform/matrix_transformers.hpp>
 #include <svc/AbstractItem.hpp>
 
 using ItemPtr = svc::ItemPtr;
@@ -96,12 +98,27 @@ SCENARIO("test Item", "[Item]") {
         CHECK_POINTS_EQUAL(scenePos, pos);
       }
 
-      THEN("length of Scene diff postion must be same as lenght of diff") {
+      THEN("length of real diff postion must be same as lenght of vector") {
         svc::Point scenePos = basicItem->getScenePos();
 
         svc::Point diff = scenePos - defaultPos;
 
         CHECK(Approx{bq::mag(diff)} == bq::mag(vec));
+      }
+
+      THEN("check new position") {
+        svc::Matrix rotationMat = bq::rotz_mat<3>(defaultAngle);
+        svc::Point  realVec;
+        boost::geometry::transform(
+            vec,
+            realVec,
+            boost::geometry::strategy::transform::
+                matrix_transformer<float, 2, 2>(rotationMat));
+
+        svc::Point scenePos = basicItem->getScenePos();
+        svc::Point diff     = scenePos - defaultPos;
+
+        CHECK_POINTS_EQUAL(diff, vec);
       }
     }
 

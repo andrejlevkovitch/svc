@@ -71,11 +71,12 @@ public:
    */
   Point getPos() const noexcept;
 
-  /**\brief move Item on diff relatively to current position
+  /**\brief move Item on diff relatively to current position (in Item
+   * koordinates)
    *
    * \note change Scene position of all child Item-s
    *
-   * \param diff vector to move
+   * \param diff vector for change current position
    */
   void moveOn(Point diff) noexcept;
 

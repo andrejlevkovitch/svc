@@ -4,6 +4,7 @@
 #include "logs.hpp"
 #include "svc/AbstractItem.hpp"
 #include "svc/base_geometry_types.hpp"
+#include <boost/function_output_iterator.hpp>
 #include <boost/geometry/index/rtree.hpp>
 #include <boost/geometry/strategies/strategies.hpp>
 #include <boost/qvm/map_vec_mat.hpp>
@@ -123,6 +124,37 @@ public:
     return ConstIterator{tree_.end()};
   }
 
+  ItemList query(Point pos) const noexcept {
+    ItemList retval;
+
+    tree_.query(
+        bg::index::covers(pos),
+        boost::make_function_output_iterator([&retval](const Value &val) {
+          retval.emplace_back(std::get<ValueTypes::ItemType>(val));
+        }));
+
+    return retval;
+  }
+
+  ItemList query(Box box, Scene::SpatialIndex index) const noexcept {
+    ItemList retval;
+
+    auto back_inserter =
+        boost::make_function_output_iterator([&retval](const Value &val) {
+          retval.emplace_back(std::get<ValueTypes::ItemType>(val));
+        });
+    switch (index) {
+    case Scene::SpatialIndex::Intersects:
+      tree_.query(bg::index::intersects(box), back_inserter);
+      break;
+    case Scene::SpatialIndex::Within:
+      tree_.query(bg::index::within(box), back_inserter);
+      break;
+    }
+
+    return retval;
+  }
+
 private:
   RTree tree_;
 };
@@ -191,6 +223,10 @@ void Scene::removeItem(ItemPtr &item) {
       item);
 }
 
+void Scene::moveItem(ItemPtr &item, Point diff) {
+  // TODO implement
+}
+
 size_t Scene::count() const noexcept {
   return imp_->count();
 }
@@ -209,6 +245,22 @@ void Scene::clear() noexcept {
 
 Box Scene::bounds() const noexcept {
   return imp_->bounds();
+}
+
+ItemList Scene::query(Point pos) const noexcept {
+  return imp_->query(pos);
+}
+
+ItemList Scene::query(Box box, SpatialIndex index) const noexcept {
+  return imp_->query(box, index);
+}
+
+void Scene::accept(AbstractVisitor *visitor) {
+  std::for_each(imp_->begin(), imp_->end(), [visitor](const ItemPtr &item) {
+    if (item->getParent() == nullptr) { // only for main items
+      item->accept(visitor);
+    }
+  });
 }
 } // namespace svc
 

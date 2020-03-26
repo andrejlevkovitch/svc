@@ -141,19 +141,21 @@ Point AbstractItem::getScenePos() const noexcept {
 void AbstractItem::moveOn(Point diff) noexcept {
   imp_->moveOn(diff);
 
+  // FIXME check moving, is this a right functional?
+
   // TODO notificate Scene about changing position of Item
 }
 
 void AbstractItem::setPos(Point pos) noexcept {
   Point currentPos = imp_->getPos();
   Point diff       = pos - currentPos;
-  imp_->moveOn(diff);
+  this->moveOn(diff);
 }
 
 void AbstractItem::setScenePos(Point scenePos) noexcept {
   Point currentPos = this->getScenePos();
   Point diff       = scenePos - currentPos;
-  imp_->moveOn(diff);
+  this->moveOn(diff);
 }
 
 AbstractItem *AbstractItem::getParent() const noexcept {

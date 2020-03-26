@@ -22,16 +22,31 @@ public:
   Scene() noexcept;
   virtual ~Scene() noexcept;
 
-  /**\brief add Item to scene
+  /**\brief add Item to scene. If the Item has some children they also will be
+   * added to the Scene
+   *
+   * \note the Item will be removed from its parent (if it exists)
+   *
+   * \note if the Item associated with some other Scene then it will be removed
+   * from it
    */
-  void appendItem(ItemPtr item) noexcept;
+  void appendItem(ItemPtr &item);
 
-  /**\brief remove Item from scene
+  /**\brief remove Item from scene. If Item has some children they also will be
+   * removed from the Scene
+   *
+   * \note you don't need append Items with parent to Scene. When Item was
+   * append to parent, then the Item will be aded to Scene manually (if parent
+   * already associated with Scene of when it will be associated with some
+   * Scene)
    *
    * \warning produce undefined behaviour if Item don't associated with the
    * Scene
+   *
+   * \warning produce undefined behaviour if parent of added Item not associated
+   * wiht the Scene
    */
-  void removeItem(ItemPtr item);
+  void removeItem(ItemPtr &item);
 
   /**\return count of items
    */

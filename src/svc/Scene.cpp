@@ -41,7 +41,7 @@ public:
       : tree_{} {
   }
 
-  void appendItem(ItemPtr item) noexcept {
+  void appendItem(ItemPtr &item) {
     // all Items we store by its bounding boxes, BUT! bounding boxes defined in
     // Items koordinates (without rotating), so we need translate it to Scene
     // koordinates
@@ -53,10 +53,10 @@ public:
                   sceneBoundingBox,
                   TranslateStrategy{itemScenePos.x(), itemScenePos.y()});
 
-    tree_.insert(Value{sceneBoundingBox, std::move(item)});
+    tree_.insert(Value{sceneBoundingBox, item});
   }
 
-  void removeItem(ItemPtr item) {
+  void removeItem(ItemPtr &item) {
     // XXX we not need calculate bounding box, because we compare Values only by
     // ItemPtr
     size_t count = tree_.remove(Value(Box{}, item));
@@ -139,21 +139,56 @@ Scene::~Scene() noexcept {
   delete imp_;
 }
 
-void Scene::appendItem(ItemPtr item) noexcept {
-  // TODO what if item already has Scene?
-  if (item.get()) {
-    imp_->appendItem(item);
-
-    item->setScene(this);
-  }
+static void recursiveChildCall(std::function<void(ItemPtr &)> foo,
+                               ItemPtr &                      item) {
+  std::list<ItemPtr> children = item->getChildren();
+  for_each(children.begin(), children.end(), foo);
 }
 
-void Scene::removeItem(ItemPtr item) {
-  // XXX the function throw exception if Item is nullptr, so we don't need check
-  // after for set Scene as nullptr
+void Scene::appendItem(ItemPtr &item) {
+  if (item.get() == nullptr) {
+    LOG_THROW(std::runtime_error, "can't append invalid item");
+  }
+
+  if (AbstractItem *parent = item->getParent();
+      parent && parent->getScene() != this) {
+    parent->removeChild(item); // also remove the item from another Scene
+  } else if (Scene *itemScene = item->getScene();
+             itemScene && itemScene != this) {
+    itemScene->removeItem(item);
+  }
+
+  imp_->appendItem(item);
+  item->setScene(this);
+
+  recursiveChildCall(
+      [this](ItemPtr &child) {
+        this->imp_->appendItem(child);
+        child->setScene(this);
+      },
+      item);
+}
+
+void Scene::removeItem(ItemPtr &item) {
+  if (item.get() == nullptr) {
+    LOG_THROW(std::runtime_error, "can't append invalid item");
+  }
+
+  // XXX before removing the Item from children we need set its scene as nullptr
+  // for prevent don't call the function recursively
+  item->setScene(nullptr);
+  if (AbstractItem *parentItem = item->getParent()) {
+    parentItem->removeChild(item);
+  }
+
   imp_->removeItem(item);
 
-  item->setScene(nullptr);
+  recursiveChildCall(
+      [this](ItemPtr &child) {
+        this->imp_->removeItem(child);
+        child->setScene(nullptr);
+      },
+      item);
 }
 
 size_t Scene::count() const noexcept {

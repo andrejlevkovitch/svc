@@ -154,7 +154,7 @@ public:
    * \warning if you append parent (or parent of parent) of the Item to children
    * it produce undefined behaviour
    */
-  void appendChild(ItemPtr child) noexcept;
+  void appendChild(ItemPtr &child);
 
   /**\brief remove the child from children of the item.
    *
@@ -162,13 +162,15 @@ public:
    *
    * \note it remove the Item from Scene
    */
-  void removeChild(ItemPtr child);
+  void removeChild(ItemPtr &child);
 
 private:
   void setScene(Scene *scene) noexcept;
 
 private:
   AbstractItemImp *imp_;
+
+  Scene *scene_;
 
   AbstractItem *parent_;
   Children      children_;

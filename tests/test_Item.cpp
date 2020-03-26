@@ -348,7 +348,9 @@ SCENARIO("test Item", "[Item]") {
         THEN("it must produce exception") {
           CHECK_THROWS(childItem->removeChild(parentItem));
           CHECK_THROWS(parentItem->removeChild(parentItem));
-          CHECK_THROWS(parentItem->removeChild({}));
+
+          svc::ItemPtr invalidItem;
+          CHECK_THROWS(parentItem->removeChild(invalidItem));
         }
       }
     }

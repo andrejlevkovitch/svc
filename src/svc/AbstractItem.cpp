@@ -31,23 +31,11 @@ using Children = AbstractItem::Children;
 class AbstractItemImp {
 public:
   AbstractItemImp() noexcept
-      : scene_{nullptr}
-      , matrix_{} {
+      : matrix_{} {
     matrix_ = bq::diag_mat(Vector{1, 1, 1});
   }
 
   ~AbstractItemImp() noexcept {
-#ifndef NDEBUG
-    scene_ = nullptr;
-#endif
-  }
-
-  inline Scene *getScene() const noexcept {
-    return scene_;
-  }
-
-  inline void setScene(Scene *scene) noexcept {
-    scene_ = scene;
   }
 
   inline Point getPos() const noexcept {
@@ -102,8 +90,6 @@ public:
   }
 
 private:
-  Scene *scene_;
-
   /**\brief store information relatively to parent (if Item don't has any parent
    * then the information is relative to Scene)
    */
@@ -111,7 +97,8 @@ private:
 };
 
 AbstractItem::AbstractItem() noexcept
-    : imp_{new AbstractItemImp{}} {
+    : imp_{new AbstractItemImp{}}
+    , scene_{nullptr} {
 }
 
 AbstractItem::~AbstractItem() noexcept {
@@ -121,16 +108,18 @@ AbstractItem::~AbstractItem() noexcept {
       children.end(),
       std::bind(&AbstractItem::removeChild, this, std::placeholders::_1));
 
-#ifndef NDEBUG
-  parent_ = nullptr;
-  children_.clear();
-#endif
-
   delete imp_;
+
+#ifndef NDEBUG
+  children_.clear();
+  imp_    = nullptr;
+  scene_  = nullptr;
+  parent_ = nullptr;
+#endif
 }
 
 Scene *AbstractItem::getScene() const noexcept {
-  return imp_->getScene();
+  return scene_;
 }
 
 Point AbstractItem::getPos() const noexcept {
@@ -175,13 +164,13 @@ Children AbstractItem::getChildren() const noexcept {
   return children_;
 }
 
-void AbstractItem::appendChild(ItemPtr child) noexcept {
+void AbstractItem::appendChild(ItemPtr &child) {
   if (child.get() == nullptr) {
-    return;
+    LOG_THROW(std::runtime_error, "can't append invalid child");
   }
 
-  if (child->getParent()) {
-    child->parent_->removeChild(child);
+  if (AbstractItem *childParent = child->getParent()) {
+    childParent->removeChild(child);
   }
 
   // before append to childs we must change matrix of child for save its Scene
@@ -194,10 +183,16 @@ void AbstractItem::appendChild(ItemPtr child) noexcept {
   }
 
   child->parent_ = this;
-  this->children_.emplace_back(std::move(child));
+  this->children_.emplace_back(child);
+
+  if (Scene *childScene = child->getScene(); scene_ && (childScene != scene_)) {
+    scene_->appendItem(child);
+  } else if (scene_ == nullptr && childScene) {
+    childScene->removeItem(child);
+  }
 }
 
-void AbstractItem::removeChild(ItemPtr child) {
+void AbstractItem::removeChild(ItemPtr &child) {
   if (child.get() == nullptr || this != child->parent_) {
     LOG_THROW(std::runtime_error, "child has different parent");
   }
@@ -215,6 +210,13 @@ void AbstractItem::removeChild(ItemPtr child) {
   children_.erase(forRemove);
 
   child->imp_->setMatrix(std::move(childSceneMatrix));
+
+  // XXX NOTE: use child Scene, because if child already removed from Scene,
+  // then its Scene was set to nullptr. If you use parent Scene you can get
+  // recursive call
+  if (Scene *childScene = child->getScene()) {
+    childScene->removeItem(child);
+  }
 }
 
 Matrix AbstractItem::getMatrix() const noexcept {
@@ -254,7 +256,6 @@ void AbstractItem::setRotation(float angle, Point anchor) noexcept {
 }
 
 void AbstractItem::setSceneRotation(float angle, Point anchor) noexcept {
-  // TODO not right!
   Matrix translationMat = bq::translation_mat(anchor);
   Matrix rotationMat    = bq::rotz_mat<3>(angle);
 
@@ -274,6 +275,6 @@ void AbstractItem::setSceneRotation(float angle, Point anchor) noexcept {
 }
 
 void AbstractItem::setScene(Scene *scene) noexcept {
-  imp_->setScene(scene);
+  scene_ = scene;
 }
 } // namespace svc

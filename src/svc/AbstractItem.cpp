@@ -133,7 +133,7 @@ Point AbstractItem::getScenePos() const noexcept {
   return bq::XY(pos);
 }
 
-void AbstractItem::moveOn(Point diff) noexcept {
+void AbstractItem::moveOn(Point diff) {
   imp_->moveOn(diff);
 
   if (scene_) {
@@ -141,7 +141,7 @@ void AbstractItem::moveOn(Point diff) noexcept {
   }
 }
 
-void AbstractItem::setPos(Point pos) noexcept {
+void AbstractItem::setPos(Point pos) {
   imp_->setPos(pos);
 
   if (scene_) {
@@ -149,7 +149,7 @@ void AbstractItem::setPos(Point pos) noexcept {
   }
 }
 
-void AbstractItem::setScenePos(Point scenePos) noexcept {
+void AbstractItem::setScenePos(Point scenePos) {
   // XXX because all information about position stores in koordinates relatively
   // to parent, we need transform the position from absolute koordinates to
   // relative
@@ -236,6 +236,14 @@ void AbstractItem::removeChild(AbstractItem *child) {
   }
 }
 
+void AbstractItem::setMatrix(Matrix matrix) {
+  imp_->setMatrix(std::move(matrix));
+
+  if (scene_) {
+    scene_->updateItemPosition(this);
+  }
+}
+
 Matrix AbstractItem::getMatrix() const noexcept {
   return imp_->getMatrix();
 }
@@ -262,7 +270,7 @@ float AbstractItem::getSceneRotation() const noexcept {
   return NORM_RADIANS(angle);
 }
 
-void AbstractItem::rotate(float angle, Point anchor) noexcept {
+void AbstractItem::rotate(float angle, Point anchor) {
   imp_->rotate(angle, anchor);
 
   // XXX if anchor is default, then we not need update position, becuase
@@ -272,7 +280,7 @@ void AbstractItem::rotate(float angle, Point anchor) noexcept {
   }
 }
 
-void AbstractItem::setRotation(float angle, Point anchor) noexcept {
+void AbstractItem::setRotation(float angle, Point anchor) {
   imp_->setRotation(angle, anchor);
 
   if (anchor != Point{0, 0} && scene_) {
@@ -280,7 +288,7 @@ void AbstractItem::setRotation(float angle, Point anchor) noexcept {
   }
 }
 
-void AbstractItem::setSceneRotation(float angle, Point anchor) noexcept {
+void AbstractItem::setSceneRotation(float angle, Point anchor) {
   Matrix translationMat = bq::translation_mat(anchor);
   Matrix rotationMat    = bq::rotz_mat<3>(angle);
 
@@ -305,5 +313,19 @@ void AbstractItem::setSceneRotation(float angle, Point anchor) noexcept {
 
 void AbstractItem::setScene(Scene *scene) noexcept {
   scene_ = scene;
+}
+
+void AbstractItem::accept(AbstractVisitor *visitor) {
+  std::for_each(children_.begin(), children_.end(), [visitor](ItemPtr &child) {
+    child->accept(visitor);
+  });
+}
+
+bool AbstractItem::empty() const noexcept {
+  return children_.empty();
+}
+
+size_t AbstractItem::count() const noexcept {
+  return children_.size();
 }
 } // namespace svc

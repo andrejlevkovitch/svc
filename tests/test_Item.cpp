@@ -10,6 +10,7 @@
 #include "test_auxilary.hpp"
 #include <boost/geometry/algorithms/transform.hpp>
 #include <boost/geometry/strategies/transform/matrix_transformers.hpp>
+#include <boost/qvm/map_vec_mat.hpp>
 #include <svc/AbstractItem.hpp>
 
 using ItemPtr = svc::ItemPtr;
@@ -22,6 +23,8 @@ public:
 
   void accept([[maybe_unused]] svc::AbstractVisitor *visitor) override {
   }
+
+  using AbstractItem::setMatrix;
 };
 
 SCENARIO("test Item", "[Item]") {
@@ -39,7 +42,7 @@ SCENARIO("test Item", "[Item]") {
       CHECK(basicItem->getParent() == nullptr);
     }
     THEN("item don't has children") {
-      CHECK(basicItem->getChildren().empty());
+      CHECK(basicItem->empty());
     }
 
     THEN("rotation angle and Scene rotation Angle are same") {
@@ -193,6 +196,22 @@ SCENARIO("test Item", "[Item]") {
         CHECK_ANGLES_EQUAL(basicItem->getSceneRotation(), angle);
       }
     }
+
+    WHEN("set matrix for Item (this is protected member but we put it to "
+         "public in inherited class)") {
+      svc::Point  translation = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+      svc::Matrix mat         = boost::qvm::translation_mat(translation);
+
+      BasicItem *item = reinterpret_cast<BasicItem *>(basicItem.get());
+
+      item->setMatrix(mat);
+
+      THEN("check position") {
+        svc::Point pos = item->getPos();
+
+        CHECK_POINTS_EQUAL(translation, pos);
+      }
+    }
   }
 
   GIVEN("parent and child Item-s") {
@@ -219,7 +238,7 @@ SCENARIO("test Item", "[Item]") {
       float defaultChildAngle = childItem->getRotation();
 
       THEN("child was be added to children") {
-        CHECK(parentItem->getChildren().size() == 1);
+        CHECK(parentItem->count() == 1);
       }
       THEN("child has parent") {
         CHECK(childItem->getParent() == parentItem.get());
@@ -308,7 +327,7 @@ SCENARIO("test Item", "[Item]") {
         parentItem->removeChild(childItem.get());
 
         THEN("child removed from children") {
-          CHECK(parentItem->getChildren().empty());
+          CHECK(parentItem->empty());
         }
 
         THEN("check that child don't has a parent") {
@@ -400,7 +419,7 @@ SCENARIO("test Item", "[Item]") {
         parentItem->appendChild(thirdItem);
 
         THEN("parent has two children") {
-          CHECK(parentItem->getChildren().size() == 2);
+          CHECK(parentItem->count() == 2);
         }
       }
 
@@ -408,10 +427,10 @@ SCENARIO("test Item", "[Item]") {
         thirdItem->appendChild(childItem);
 
         THEN("parent Item already not has any children") {
-          CHECK(parentItem->getChildren().empty());
+          CHECK(parentItem->empty());
         }
         THEN("third Item has one child") {
-          CHECK(thirdItem->getChildren().size() == 1);
+          CHECK(thirdItem->count() == 1);
         }
         THEN("child has new parent") {
           CHECK(childItem->getParent() == thirdItem.get());

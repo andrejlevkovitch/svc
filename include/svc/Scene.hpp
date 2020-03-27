@@ -1,5 +1,6 @@
 // Scene.hpp
 /**\file
+ * Use visitors for manage Items on Scene
  */
 
 #pragma once
@@ -21,9 +22,6 @@ using ItemList = std::list<ItemPtr>;
 /**\brief Scene provide 2D infinity space in cartesian koordinate system.
  * Provide functional for append, remove and move Items. Support quires
  * operations, saving and restoring
- *
- * \todo think about iterator for Items. Is it needed? How it must iterate the
- * Scene? Only main Items? Or all? I think better use visitor instead
  */
 class Scene {
 public:

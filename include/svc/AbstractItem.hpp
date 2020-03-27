@@ -15,6 +15,8 @@
  * koordinates
  *
  * Scene koordinates are absolute koordinates.
+ *
+ * \note highly recomended to use visitors for manage Items
  */
 
 #pragma once
@@ -55,7 +57,8 @@ public:
    */
   virtual Box getBoundingBox() const noexcept = 0;
 
-  /**\brief for ierarchy of Item-s must be realized ierarchy of visitors
+  /**\brief for ierarchy of Item-s must be realized ierarchy of visitors.
+   * Default realization just call accept for children
    *
    * \note AbstractVisitor not a part of basic classes, this is a placeholder.
    * New Item ierarchy must be realize with parallel ierarchy of visitors. You
@@ -90,13 +93,13 @@ public:
    *
    * \param diff vector in Item koordinates
    */
-  void moveOn(Point diff) noexcept;
+  void moveOn(Point diff);
 
   /**\brief set position of the Item relatively to Scene
    *
    * \note change Scene position of all child Item-s
    */
-  void setScenePos(Point scenePos) noexcept;
+  void setScenePos(Point scenePos);
 
   /**\brief set position of the Item relatively to parent. If the Item don't has
    * a parent then result will be same as set Scene position
@@ -105,7 +108,7 @@ public:
    *
    * \see setScenePos
    */
-  void setPos(Point pos) noexcept;
+  void setPos(Point pos);
 
   /**\return rotation angle in radians
    */
@@ -121,7 +124,7 @@ public:
    *
    * \param anchor in Item koordinates
    */
-  void rotate(float angle, Point anchor = {0, 0}) noexcept;
+  void rotate(float angle, Point anchor = {0, 0});
 
   /**\brief set rotation of the Item relatively to parent
    *
@@ -129,7 +132,7 @@ public:
    *
    * \param anchor in Item koordinates
    */
-  void setRotation(float angle, Point anchor = {0, 0}) noexcept;
+  void setRotation(float angle, Point anchor = {0, 0});
 
   /**\brief set rotation angle for the Item relative to Scene
    *
@@ -137,16 +140,7 @@ public:
    *
    * \param achor in Item koordinates
    */
-  void setSceneRotation(float angle, Point anchor = {0, 0}) noexcept;
-
-  /**\return parent of the Item or nullptr if Item not have any parent
-   */
-  AbstractItem *getParent() const noexcept;
-
-  /**\return list of all leaf nodes of the Item (not includes leaf nodes of
-   * children Items)
-   */
-  Children getChildren() const noexcept;
+  void setSceneRotation(float angle, Point anchor = {0, 0});
 
   /**\brief append new child for the Item. If child already have parent, then
    * ownership of the child will be moved from previous parent to the Item. If
@@ -168,6 +162,25 @@ public:
    */
   void removeChild(AbstractItem *child);
 
+  /**\return list of all leaf nodes of the Item (not includes leaf nodes of
+   * children Items)
+   *
+   * \note hidhly recomended to use visitor for manage children of Item
+   */
+  Children getChildren() const noexcept;
+
+  /**\return true if the Item don't has any child
+   */
+  bool empty() const noexcept;
+
+  /**\return count of children (only first level)
+   */
+  size_t count() const noexcept;
+
+  /**\return parent of the Item or nullptr if Item not have any parent
+   */
+  AbstractItem *getParent() const noexcept;
+
 protected:
   /**\return affine transformation matrix for the Item relatively to parent. If
    * Item not has a parent it will be same as Scene matrix
@@ -179,6 +192,10 @@ protected:
   /**\return affine transformation matrix for the Item relatively to Scene
    */
   Matrix getSceneMatrix() const noexcept;
+
+  /**\note translation relative to parent
+   */
+  void setMatrix(Matrix mat);
 
 private:
   void setScene(Scene *scene) noexcept;

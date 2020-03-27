@@ -10,6 +10,7 @@
 #include "test_auxilary.hpp"
 #include <boost/geometry/algorithms/area.hpp>
 #include <boost/geometry/strategies/strategies.hpp>
+#include <boost/qvm/map_vec_mat.hpp>
 
 class BasicItem final : public svc::AbstractItem {
 public:
@@ -19,6 +20,8 @@ public:
 
   void accept([[maybe_unused]] svc::AbstractVisitor *visitor) override {
   }
+
+  using AbstractItem::setMatrix;
 };
 
 SCENARIO("test Scene", "[Scene]") {
@@ -182,7 +185,7 @@ SCENARIO("test Scene", "[Scene]") {
         }
 
         THEN("parent must not cantains any children anymore") {
-          CHECK(parent->getChildren().size() == 0);
+          CHECK(parent->empty());
         }
 
         THEN("child must not has any Scene") {
@@ -198,7 +201,7 @@ SCENARIO("test Scene", "[Scene]") {
         }
 
         THEN("parent must not cantains any children anymore") {
-          CHECK(parent->getChildren().size() == 0);
+          CHECK(parent->empty());
         }
 
         THEN("child must not has any Scene") {
@@ -219,7 +222,7 @@ SCENARIO("test Scene", "[Scene]") {
         }
 
         THEN("parent still has own child") {
-          CHECK(parent->getChildren().size() == 1);
+          CHECK(parent->count() == 1);
           CHECK(parent->getChildren().front() == child);
         }
       }
@@ -237,7 +240,7 @@ SCENARIO("test Scene", "[Scene]") {
       }
 
       THEN("parent don't has any children") {
-        CHECK(parent->getChildren().empty());
+        CHECK(parent->empty());
         CHECK(child->getParent() == nullptr);
       }
     }
@@ -384,7 +387,7 @@ SCENARIO("test Scene", "[Scene]") {
         }
 
         THEN("parent don't has any children") {
-          CHECK(parent->getChildren().empty());
+          CHECK(parent->empty());
           CHECK(child->getParent() == nullptr);
         }
       }
@@ -564,6 +567,23 @@ SCENARIO("test Scene", "[Scene]") {
       THEN("we can get the Item by new position") {
         svc::Point    newPos{0, 20};
         svc::ItemList list = scene->query(newPos);
+
+        REQUIRE(list.size() == 1);
+        CHECK(list.front() == item);
+      }
+    }
+
+    WHEN("set new matrix (this is privete method, but we set it public in "
+         "inherited class)") {
+      svc::Point  translation = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+      svc::Matrix mat         = boost::qvm::translation_mat(translation);
+
+      BasicItem *basic = reinterpret_cast<BasicItem *>(item.get());
+
+      basic->setMatrix(mat);
+
+      THEN("we can get the Item by query") {
+        svc::ItemList list = scene->query(translation);
 
         REQUIRE(list.size() == 1);
         CHECK(list.front() == item);

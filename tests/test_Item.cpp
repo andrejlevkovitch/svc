@@ -293,7 +293,7 @@ SCENARIO("test Item", "[Item]") {
       }
 
       WHEN("remove child") {
-        parentItem->removeChild(childItem);
+        parentItem->removeChild(childItem.get());
 
         THEN("child removed from children") {
           CHECK(parentItem->getChildren().empty());
@@ -305,7 +305,7 @@ SCENARIO("test Item", "[Item]") {
 
         WHEN("try remove again") {
           THEN("produce exeption") {
-            CHECK_THROWS(parentItem->removeChild(childItem));
+            CHECK_THROWS(parentItem->removeChild(childItem.get()));
           }
         }
       }
@@ -345,11 +345,11 @@ SCENARIO("test Item", "[Item]") {
 
       WHEN("try remove wrong child") {
         THEN("it must produce exception") {
-          CHECK_THROWS(childItem->removeChild(parentItem));
-          CHECK_THROWS(parentItem->removeChild(parentItem));
+          CHECK_THROWS(childItem->removeChild(parentItem.get()));
+          CHECK_THROWS(parentItem->removeChild(parentItem.get()));
 
           svc::ItemPtr invalidItem;
-          CHECK_THROWS(parentItem->removeChild(invalidItem));
+          CHECK_THROWS(parentItem->removeChild(invalidItem.get()));
         }
       }
     }

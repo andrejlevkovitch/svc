@@ -35,7 +35,7 @@ using ItemPtr = std::shared_ptr<AbstractItem>;
  * Realised as Compositor
  * \todo think about scaling - is this needed?
  */
-class AbstractItem : protected std::enable_shared_from_this<AbstractItem> {
+class AbstractItem {
   friend Scene;
 
 public:
@@ -170,7 +170,7 @@ public:
    *
    * \note it remove the Item from Scene
    */
-  void removeChild(ItemPtr &child);
+  void removeChild(AbstractItem *child);
 
 protected:
   /**\return affine transformation matrix for the Item relatively to parent. If

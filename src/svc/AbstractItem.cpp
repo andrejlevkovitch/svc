@@ -106,10 +106,9 @@ AbstractItem::AbstractItem() noexcept
 
 AbstractItem::~AbstractItem() noexcept {
   Children children = this->children_;
-  std::for_each(
-      children.begin(),
-      children.end(),
-      std::bind(&AbstractItem::removeChild, this, std::placeholders::_1));
+  std::for_each(children.begin(), children.end(), [this](ItemPtr &child) {
+    this->removeChild(child.get());
+  });
 
   delete imp_;
 
@@ -139,10 +138,18 @@ Point AbstractItem::getScenePos() const noexcept {
 
 void AbstractItem::moveOn(Point diff) noexcept {
   imp_->moveOn(diff);
+
+  if (scene_) {
+    scene_->updateItemPosition(this);
+  }
 }
 
 void AbstractItem::setPos(Point pos) noexcept {
   imp_->setPos(pos);
+
+  if (scene_) {
+    scene_->updateItemPosition(this);
+  }
 }
 
 void AbstractItem::setScenePos(Point scenePos) noexcept {
@@ -155,6 +162,10 @@ void AbstractItem::setScenePos(Point scenePos) noexcept {
     imp_->setPos(bq::XY(relativePos));
   } else {
     imp_->setPos(scenePos);
+  }
+
+  if (scene_) {
+    scene_->updateItemPosition(this);
   }
 }
 
@@ -172,7 +183,7 @@ void AbstractItem::appendChild(ItemPtr &child) {
   }
 
   if (AbstractItem *childParent = child->getParent()) {
-    childParent->removeChild(child);
+    childParent->removeChild(child.get());
   }
 
   // before append to childs we must change matrix of child for save its Scene
@@ -190,12 +201,12 @@ void AbstractItem::appendChild(ItemPtr &child) {
   if (Scene *childScene = child->getScene(); scene_ && (childScene != scene_)) {
     scene_->appendItem(child);
   } else if (scene_ == nullptr && childScene) {
-    childScene->removeItem(child);
+    childScene->removeItem(child.get());
   }
 }
 
-void AbstractItem::removeChild(ItemPtr &child) {
-  if (child.get() == nullptr || this != child->parent_) {
+void AbstractItem::removeChild(AbstractItem *child) {
+  if (child == nullptr || this != child->parent_) {
     LOG_THROW(std::runtime_error, "child has different parent");
   }
 
@@ -205,7 +216,14 @@ void AbstractItem::removeChild(ItemPtr &child) {
   Matrix childSceneMatrix = child->getSceneMatrix();
   child->parent_          = nullptr;
 
-  auto forRemove = std::find(children_.begin(), children_.end(), child);
+  auto forRemove = std::find_if(children_.begin(),
+                                children_.end(),
+                                [child](const ItemPtr &item) {
+                                  if (child == item.get()) {
+                                    return true;
+                                  }
+                                  return false;
+                                });
 
   DEBBUG_ASSERT(forRemove != children_.end(), "child not found");
 
@@ -251,10 +269,18 @@ float AbstractItem::getSceneRotation(Point anchor) const noexcept {
 
 void AbstractItem::rotate(float angle, Point anchor) noexcept {
   imp_->rotate(angle, anchor);
+
+  if (anchor != Point{0, 0} && scene_) {
+    scene_->updateItemPosition(this);
+  }
 }
 
 void AbstractItem::setRotation(float angle, Point anchor) noexcept {
   imp_->setRotation(angle, anchor);
+
+  if (anchor != Point{0, 0} && scene_) {
+    scene_->updateItemPosition(this);
+  }
 }
 
 void AbstractItem::setSceneRotation(float angle, Point anchor) noexcept {
@@ -275,6 +301,10 @@ void AbstractItem::setSceneRotation(float angle, Point anchor) noexcept {
   bq::translation(newMat) = bq::translation(currentMat);
 
   imp_->setMatrix(std::move(newMat));
+
+  if (anchor != Point{0, 0} && scene_) {
+    scene_->updateItemPosition(this);
+  }
 }
 
 void AbstractItem::setScene(Scene *scene) noexcept {

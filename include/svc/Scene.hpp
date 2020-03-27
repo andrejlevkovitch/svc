@@ -56,13 +56,14 @@ public:
    * \warning produce undefined behaviour if parent of added Item not associated
    * wiht the Scene
    */
-  void removeItem(ItemPtr &item);
+  void removeItem(AbstractItem *item);
 
-  /**\brief move Item from the Scene to new position
+  /**\brief Item, after change own position, must notificate the Scene about it
+   * for update spatial indicies
    *
-   * \param diff vector for change current position
+   * \note item must be associated with the Scene
    */
-  void moveItem(ItemPtr &item, Point diff);
+  void updateItemPosition(AbstractItem *item);
 
   /**\return count of items
    */

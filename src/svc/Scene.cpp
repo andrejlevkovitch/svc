@@ -42,7 +42,7 @@ public:
       : tree_{} {
   }
 
-  void appendItem(ItemPtr &item) {
+  void appendItem(ItemPtr item) {
     // all Items we store by its bounding boxes, BUT! bounding boxes defined in
     // Items koordinates (without rotating), so we need translate it to Scene
     // koordinates
@@ -54,16 +54,48 @@ public:
                   sceneBoundingBox,
                   TranslateStrategy{itemScenePos.x(), itemScenePos.y()});
 
-    tree_.insert(Value{sceneBoundingBox, item});
+    tree_.insert(Value{sceneBoundingBox, std::move(item)});
   }
 
-  void removeItem(ItemPtr &item) {
-    // XXX we not need calculate bounding box, because we compare Values only by
-    // ItemPtr
-    size_t count = tree_.remove(Value(Box{}, item));
+  void removeItem(AbstractItem *item) {
+    auto found =
+        std::find_if(tree_.begin(), tree_.end(), [item](const Value &value) {
+          if (std::get<ValueTypes::ItemType>(value).get() == item) {
+            return true;
+          }
+          return false;
+        });
+
+    if (found == tree_.end()) {
+      LOG_THROW(std::runtime_error, "item not found");
+    }
+
+    size_t count = tree_.remove(*found);
     if (count == 0) {
       LOG_THROW(std::runtime_error, "item not removed");
     }
+  }
+
+  void updateItemPosition(AbstractItem *item) {
+    auto found =
+        std::find_if(tree_.begin(), tree_.end(), [item](const Value &val) {
+          if (std::get<ValueTypes::ItemType>(val).get() == item) {
+            return true;
+          }
+          return false;
+        });
+
+    if (found == tree_.end()) {
+      LOG_THROW(std::runtime_error, "item not found");
+    }
+
+    ItemPtr movingItem = std::get<ValueTypes::ItemType>(*found);
+    size_t  count      = tree_.remove(*found);
+    if (count == 0) {
+      LOG_THROW(std::runtime_error, "item not removed");
+    }
+
+    this->appendItem(std::move(movingItem));
   }
 
   size_t count() const noexcept {
@@ -172,11 +204,11 @@ Scene::~Scene() noexcept {
 }
 
 static void recursiveChildCall(std::function<void(ItemPtr &)> foo,
-                               ItemPtr &                      item) {
+                               AbstractItem *                 item) {
   std::list<ItemPtr> children = item->getChildren();
   for_each(children.begin(), children.end(), [foo](ItemPtr &child) {
     foo(child);
-    recursiveChildCall(foo, child);
+    recursiveChildCall(foo, child.get());
   });
 }
 
@@ -187,10 +219,10 @@ void Scene::appendItem(ItemPtr &item) {
 
   if (AbstractItem *parent = item->getParent();
       parent && parent->getScene() != this) {
-    parent->removeChild(item); // also remove the item from another Scene
+    parent->removeChild(item.get()); // also remove the item from another Scene
   } else if (Scene *itemScene = item->getScene();
              itemScene && itemScene != this) {
-    itemScene->removeItem(item);
+    itemScene->removeItem(item.get());
   }
 
   imp_->appendItem(item);
@@ -201,11 +233,11 @@ void Scene::appendItem(ItemPtr &item) {
         this->imp_->appendItem(child);
         child->setScene(this);
       },
-      item);
+      item.get());
 }
 
-void Scene::removeItem(ItemPtr &item) {
-  if (item.get() == nullptr) {
+void Scene::removeItem(AbstractItem *item) {
+  if (item == nullptr) {
     LOG_THROW(std::runtime_error, "can't append invalid item");
   }
 
@@ -220,14 +252,20 @@ void Scene::removeItem(ItemPtr &item) {
 
   recursiveChildCall(
       [this](ItemPtr &child) {
-        this->imp_->removeItem(child);
+        this->imp_->removeItem(child.get());
         child->setScene(nullptr);
       },
       item);
 }
 
-void Scene::moveItem(ItemPtr &item, Point diff) {
-  // TODO implement
+void Scene::updateItemPosition(AbstractItem *item) {
+  imp_->updateItemPosition(item);
+
+  recursiveChildCall(
+      [this](ItemPtr &child) {
+        this->imp_->updateItemPosition(child.get());
+      },
+      item);
 }
 
 size_t Scene::count() const noexcept {

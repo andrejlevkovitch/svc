@@ -36,11 +36,10 @@ SCENARIO("test Scene", "[Scene]") {
 
     WHEN("we try remove not existing Item") {
       THEN("it must produce execption") {
-        svc::ItemPtr invalidItem;
-        CHECK_THROWS(scene.removeItem(invalidItem));
+        CHECK_THROWS(scene.removeItem(nullptr));
 
         svc::ItemPtr itemWithoutScene = std::make_shared<BasicItem>();
-        CHECK_THROWS(scene.removeItem(itemWithoutScene));
+        CHECK_THROWS(scene.removeItem(itemWithoutScene.get()));
       }
     }
 
@@ -95,7 +94,7 @@ SCENARIO("test Scene", "[Scene]") {
     }
 
     WHEN("remove Item") {
-      scene->removeItem(item);
+      scene->removeItem(item.get());
 
       THEN("now the Item don't associated with any Scene") {
         CHECK(item->getScene() == nullptr);
@@ -103,7 +102,7 @@ SCENARIO("test Scene", "[Scene]") {
 
       WHEN("try remove again") {
         THEN("produce error") {
-          CHECK_THROWS(scene->removeItem(item));
+          CHECK_THROWS(scene->removeItem(item.get()));
         }
       }
     }
@@ -176,7 +175,7 @@ SCENARIO("test Scene", "[Scene]") {
       }
 
       WHEN("remove child by Scene") {
-        scene->removeItem(child);
+        scene->removeItem(child.get());
 
         THEN("Scene must contains only one Item") {
           CHECK(scene->count() == 1);
@@ -192,7 +191,7 @@ SCENARIO("test Scene", "[Scene]") {
       }
 
       WHEN("remove child by parent") {
-        parent->removeChild(child);
+        parent->removeChild(child.get());
 
         THEN("Scene must contains only one Item") {
           CHECK(scene->count() == 1);
@@ -208,7 +207,7 @@ SCENARIO("test Scene", "[Scene]") {
       }
 
       WHEN("remove parent") {
-        scene->removeItem(parent);
+        scene->removeItem(parent.get());
 
         THEN("Scene must be empty") {
           scene->empty();
@@ -311,7 +310,7 @@ SCENARIO("test Scene", "[Scene]") {
     }
 
     WHEN("remove root item") {
-      scene->removeItem(first);
+      scene->removeItem(first.get());
 
       THEN("Scene must be empty") {
         CHECK(scene->empty());
@@ -517,10 +516,15 @@ SCENARIO("test Scene", "[Scene]") {
 
     scene->appendItem(item);
 
-    WHEN("move position") {
+    WHEN("set position") {
       svc::Point newPos = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
 
-      item->setScenePos(newPos);
+      bool isScenePos = GENERATE(false, true);
+      if (isScenePos) {
+        item->setScenePos(newPos);
+      } else {
+        item->setPos(newPos);
+      }
 
       THEN("Scene must contains only one Item") {
         CHECK(scene->count() == 1);
@@ -541,6 +545,54 @@ SCENARIO("test Scene", "[Scene]") {
           svc::ItemList list = scene->query(initialPoint);
           CHECK(list.size() == 0);
         }
+      }
+    }
+
+    WHEN("rotade Item by some corner") {
+      svc::Point startPos{20, 0};
+      item->setScenePos(startPos);
+      item->setSceneRotation(TO_RAD(90), {-20, 0});
+
+      THEN("Scene has only one element") {
+        CHECK(scene->count() == 1);
+      }
+
+      THEN("we can't get the Item by start position") {
+        CHECK(scene->query(startPos).empty());
+      }
+
+      THEN("we can get the Item by new position") {
+        svc::Point    newPos{0, -20};
+        svc::ItemList list = scene->query(newPos);
+
+        REQUIRE(list.size() == 1);
+        CHECK(list.front() == item);
+      }
+    }
+  }
+
+  GIVEN("Scene with nested Items") {
+    std::shared_ptr<svc::Scene> scene = std::make_shared<svc::Scene>();
+
+    svc::ItemPtr first  = std::make_shared<BasicItem>();
+    svc::ItemPtr second = std::make_shared<BasicItem>();
+    svc::ItemPtr third  = std::make_shared<BasicItem>();
+    svc::ItemPtr fourd  = std::make_shared<BasicItem>();
+
+    first->appendChild(second);
+    second->appendChild(third);
+    third->appendChild(fourd);
+
+    scene->appendItem(first);
+
+    WHEN("set new position for root Item") {
+      svc::Point newPos = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+      first->setScenePos(newPos);
+
+      THEN("now we can get all the Items by the position from query") {
+        svc::ItemList list = scene->query(newPos);
+
+        REQUIRE(list.size() == 4);
       }
     }
   }

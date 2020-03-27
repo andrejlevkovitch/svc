@@ -38,14 +38,18 @@ public:
   ~AbstractItemImp() noexcept {
   }
 
+  inline void moveOn(Point diff) noexcept {
+    matrix_ *= bq::translation_mat(diff);
+  }
+
+  inline void setPos(Point pos) noexcept {
+    bq::translation(matrix_) = pos;
+  }
+
   inline Point getPos() const noexcept {
     Vector pos{0, 0, 1};
     pos = matrix_ * pos;
     return bq::XY(pos);
-  }
-
-  inline void moveOn(Point diff) noexcept {
-    bq::translation(matrix_) += diff;
   }
 
   inline Matrix getMatrix() const noexcept {
@@ -84,9 +88,8 @@ public:
     newMat *= rotationMat;
     newMat *= bq::inverse(translationMat);
 
-    Point pos = this->getPos();
-    matrix_   = std::move(newMat);
-    this->moveOn(pos);
+    bq::translation(newMat) = bq::translation(matrix_);
+    matrix_                 = std::move(newMat);
   }
 
 private:
@@ -127,35 +130,32 @@ Point AbstractItem::getPos() const noexcept {
 }
 
 Point AbstractItem::getScenePos() const noexcept {
-  Point pos = this->getPos();
+  Matrix      matrix = this->getSceneMatrix();
+  svc::Vector vec{0, 0, 1};
+  svc::Vector pos = matrix * vec;
 
-  if (this->parent_) {
-    Matrix      parentMatrix = this->parent_->getSceneMatrix();
-    svc::Vector vec          = parentMatrix * bq::XY1(pos);
-    pos                      = bq::XY(vec);
-  }
-
-  return pos;
+  return bq::XY(pos);
 }
 
 void AbstractItem::moveOn(Point diff) noexcept {
   imp_->moveOn(diff);
-
-  // FIXME check moving, is this a right functional?
-
-  // TODO notificate Scene about changing position of Item
 }
 
 void AbstractItem::setPos(Point pos) noexcept {
-  Point currentPos = imp_->getPos();
-  Point diff       = pos - currentPos;
-  this->moveOn(diff);
+  imp_->setPos(pos);
 }
 
 void AbstractItem::setScenePos(Point scenePos) noexcept {
-  Point currentPos = this->getScenePos();
-  Point diff       = scenePos - currentPos;
-  this->moveOn(diff);
+  // XXX because all information about position stores in koordinates relatively
+  // to parent, we need transform the position from absolute koordinates to
+  // relative
+  if (parent_) {
+    Matrix      sceneMatrix = this->parent_->getSceneMatrix();
+    svc::Vector relativePos = bq::inverse(sceneMatrix) * bq::XY1(scenePos);
+    imp_->setPos(bq::XY(relativePos));
+  } else {
+    imp_->setPos(scenePos);
+  }
 }
 
 AbstractItem *AbstractItem::getParent() const noexcept {
@@ -271,9 +271,10 @@ void AbstractItem::setSceneRotation(float angle, Point anchor) noexcept {
     newMat *= bq::inverse(parentMatrix);
   }
 
-  Point pos = this->getPos();
+  Matrix currentMat       = imp_->getMatrix();
+  bq::translation(newMat) = bq::translation(currentMat);
+
   imp_->setMatrix(std::move(newMat));
-  this->moveOn(pos);
 }
 
 void AbstractItem::setScene(Scene *scene) noexcept {

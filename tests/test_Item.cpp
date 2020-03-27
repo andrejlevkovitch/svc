@@ -51,38 +51,20 @@ SCENARIO("test Item", "[Item]") {
     }
 
     WHEN("set new position") {
-      svc::Point newPos = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
-      basicItem->setPos(newPos);
-
-      THEN("getPos must return right value") {
-        svc::Point pos = basicItem->getPos();
-
-        CHECK_POINTS_EQUAL(pos, newPos);
+      svc::Point newPos     = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+      bool       isScenePos = GENERATE(false, true);
+      if (isScenePos) {
+        basicItem->setScenePos(newPos);
+      } else {
+        basicItem->setPos(newPos);
       }
-      THEN("Scene position must be equal to position, because Item don't has a "
-           "parent") {
+
+      THEN("both Scene and relative position must be same") {
         svc::Point pos      = basicItem->getPos();
         svc::Point scenePos = basicItem->getScenePos();
 
         CHECK_POINTS_EQUAL(pos, scenePos);
-      }
-    }
-
-    WHEN("set new Scene position") {
-      svc::Point newPos = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
-      basicItem->setScenePos(newPos);
-
-      THEN("getScenePos must return right value") {
-        svc::Point scenePos = basicItem->getScenePos();
-
-        CHECK_POINTS_EQUAL(newPos, scenePos);
-      }
-      THEN("Scene position and position must be same, because Item don't has a "
-           "parent") {
-        svc::Point scenePos = basicItem->getScenePos();
-        svc::Point pos      = basicItem->getPos();
-
-        CHECK_POINTS_EQUAL(scenePos, pos);
+        CHECK_POINTS_EQUAL(pos, newPos);
       }
     }
 
@@ -108,17 +90,17 @@ SCENARIO("test Item", "[Item]") {
 
       THEN("check new position") {
         svc::Matrix rotationMat = bq::rotz_mat<3>(defaultAngle);
-        svc::Point  realVec;
+        svc::Point  sceneVec;
         boost::geometry::transform(
             vec,
-            realVec,
+            sceneVec,
             boost::geometry::strategy::transform::
                 matrix_transformer<float, 2, 2>(rotationMat));
 
         svc::Point scenePos = basicItem->getScenePos();
         svc::Point diff     = scenePos - defaultPos;
 
-        CHECK_POINTS_EQUAL(diff, vec);
+        CHECK_POINTS_EQUAL(diff, sceneVec);
       }
     }
 
@@ -261,7 +243,7 @@ SCENARIO("test Item", "[Item]") {
 
           svc::Point childDiff = newSceneChildPos - defaultChildScenePos;
 
-          CHECK_POINTS_EQUAL(diff, childDiff);
+          CHECK(Approx{bq::mag(diff)} == bq::mag(childDiff));
         }
       }
 

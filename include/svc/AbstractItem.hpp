@@ -74,7 +74,7 @@ public:
   /**\brief move Item on diff relatively to current position (in Item
    * koordinates)
    *
-   * \note change Scene position of all child Item-s
+   * \note the operation change Scene position of all child Item-s
    *
    * \param diff vector for change current position
    */
@@ -97,11 +97,13 @@ public:
 
   /**\return rotation angle in radians
    *
-   * \param anchor in item koordinates
+   * \param anchor in Item koordinates
    */
   float getRotation(Point anchor = {0, 0}) const noexcept;
 
   /**\return rotation angle of the Item relative to Scene
+   *
+   * \param anchor in Item koordinates
    */
   float getSceneRotation(Point anchor = {0, 0}) const noexcept;
 
@@ -109,7 +111,7 @@ public:
    *
    * \param angle in radians
    *
-   * \param anchor in item koordinates
+   * \param anchor in Item koordinates
    */
   void rotate(float angle, Point anchor = {0, 0}) noexcept;
 
@@ -117,11 +119,15 @@ public:
    *
    * \param angle in radians
    *
-   * \param anchor in item koordinates
+   * \param anchor in Item koordinates
    */
   void setRotation(float angle, Point anchor = {0, 0}) noexcept;
 
   /**\brief set rotation angle for the Item relative to Scene
+   *
+   * \param angle in radians
+   *
+   * \param achor in Item koordinates
    */
   void setSceneRotation(float angle, Point anchor = {0, 0}) noexcept;
 

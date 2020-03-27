@@ -60,10 +60,8 @@ public:
     matrix_ = std::move(matrix);
   }
 
-  inline float getRotation(Point anchor) const noexcept {
-    Matrix mat         = matrix_;
-    Matrix translation = bq::translation_mat(anchor);
-    mat *= translation;
+  inline float getRotation() const noexcept {
+    Matrix mat = matrix_;
     return svc::getRotation(mat);
   }
 
@@ -83,13 +81,12 @@ public:
     Matrix translationMat = bq::translation_mat(anchor);
     Matrix rotationMat    = bq::rotz_mat<3>(angle);
 
-    Matrix newMat = bq::diag_mat(Vector{1, 1, 1});
+    Matrix newMat = bq::translation_mat(bq::translation(matrix_));
     newMat *= translationMat;
     newMat *= rotationMat;
     newMat *= bq::inverse(translationMat);
 
-    bq::translation(newMat) = bq::translation(matrix_);
-    matrix_                 = std::move(newMat);
+    matrix_ = std::move(newMat);
   }
 
 private:
@@ -254,22 +251,22 @@ Matrix AbstractItem::getSceneMatrix() const noexcept {
   return matrix;
 }
 
-float AbstractItem::getRotation(Point anchor) const noexcept {
-  float angle = imp_->getRotation(anchor);
+float AbstractItem::getRotation() const noexcept {
+  float angle = imp_->getRotation();
   return NORM_RADIANS(angle);
 }
 
-float AbstractItem::getSceneRotation(Point anchor) const noexcept {
-  Matrix mat         = this->getSceneMatrix();
-  Matrix translation = bq::translation_mat(anchor);
-  mat *= translation;
-  float angle = svc::getRotation(mat);
+float AbstractItem::getSceneRotation() const noexcept {
+  Matrix mat   = this->getSceneMatrix();
+  float  angle = svc::getRotation(mat);
   return NORM_RADIANS(angle);
 }
 
 void AbstractItem::rotate(float angle, Point anchor) noexcept {
   imp_->rotate(angle, anchor);
 
+  // XXX if anchor is default, then we not need update position, becuase
+  // position of the Item didn't change
   if (anchor != Point{0, 0} && scene_) {
     scene_->updateItemPosition(this);
   }
@@ -287,7 +284,9 @@ void AbstractItem::setSceneRotation(float angle, Point anchor) noexcept {
   Matrix translationMat = bq::translation_mat(anchor);
   Matrix rotationMat    = bq::rotz_mat<3>(angle);
 
-  Matrix newMat = bq::diag_mat(Vector{1, 1, 1});
+  Matrix currentMat = imp_->getMatrix();
+
+  Matrix newMat = bq::translation_mat(bq::translation(currentMat));
   newMat *= translationMat;
   newMat *= rotationMat;
   newMat *= bq::inverse(translationMat);
@@ -296,9 +295,6 @@ void AbstractItem::setSceneRotation(float angle, Point anchor) noexcept {
     Matrix parentMatrix = this->parent_->getSceneMatrix();
     newMat *= bq::inverse(parentMatrix);
   }
-
-  Matrix currentMat       = imp_->getMatrix();
-  bq::translation(newMat) = bq::translation(currentMat);
 
   imp_->setMatrix(std::move(newMat));
 

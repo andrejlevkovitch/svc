@@ -157,28 +157,40 @@ SCENARIO("test Item", "[Item]") {
       }
     }
 
-    WHEN("rotate with anchor") {
-      float      angle  = ANGLE_GENERATOR(SECOND_LEVEL_GENERATOR);
-      svc::Point anchor = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
-      basicItem->rotate(angle, anchor);
-
-      THEN("rotation of the Item must be a sum of ratation of the angle and "
-           "default Item angle") {
-        float currentAngle = basicItem->getRotation(anchor);
-
-        CHECK_ANGLES_EQUAL(currentAngle - defaultAngle, angle);
-      }
-    }
-
     WHEN("set rotation with anchor") {
-      float      angle  = ANGLE_GENERATOR(SECOND_LEVEL_GENERATOR);
-      svc::Point anchor = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
-      basicItem->setRotation(angle, anchor);
+      svc::Point startPoint{10, 0};
+      svc::Point anchor{-10, 0};
+      basicItem->setScenePos(startPoint);
+      basicItem->setSceneRotation(0);
 
-      THEN("rotation of the Item must be same to angle") {
-        float currentAngle = basicItem->getRotation();
+      float angle    = TO_RAD(90);
+      int   rotation = GENERATE(0, 1, 2);
+      // rotate around begining of koordinates
+      switch (rotation) {
+      case 0:
+        basicItem->setSceneRotation(angle, anchor);
+        break;
+      case 1:
+        basicItem->setRotation(angle, anchor);
+        break;
+      case 2:
+        basicItem->rotate(angle, anchor);
+        break;
+      default:
+        CHECK(false);
+        break;
+      }
 
-        CHECK_ANGLES_EQUAL(currentAngle, angle);
+      THEN("Item has new position") {
+        svc::Point newPos{0, 10};
+
+        CHECK_POINTS_EQUAL(basicItem->getScenePos(), newPos);
+        CHECK_POINTS_EQUAL(basicItem->getPos(), newPos);
+      }
+
+      THEN("also current angle must be same as set") {
+        CHECK_ANGLES_EQUAL(basicItem->getRotation(), angle);
+        CHECK_ANGLES_EQUAL(basicItem->getSceneRotation(), angle);
       }
     }
   }

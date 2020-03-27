@@ -108,16 +108,12 @@ public:
   void setPos(Point pos) noexcept;
 
   /**\return rotation angle in radians
-   *
-   * \param anchor in Item koordinates
    */
-  float getRotation(Point anchor = {0, 0}) const noexcept;
+  float getRotation() const noexcept;
 
   /**\return rotation angle of the Item relative to Scene
-   *
-   * \param anchor in Item koordinates
    */
-  float getSceneRotation(Point anchor = {0, 0}) const noexcept;
+  float getSceneRotation() const noexcept;
 
   /**\brief rotate current Item
    *

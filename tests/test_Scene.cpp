@@ -562,7 +562,7 @@ SCENARIO("test Scene", "[Scene]") {
       }
 
       THEN("we can get the Item by new position") {
-        svc::Point    newPos{0, -20};
+        svc::Point    newPos{0, 20};
         svc::ItemList list = scene->query(newPos);
 
         REQUIRE(list.size() == 1);

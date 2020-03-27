@@ -5,8 +5,8 @@
 
 #include "svc/base_geometry_types.hpp"
 
-#define FIRST_LEVEL_GENERATOR  1
-#define SECOND_LEVEL_GENERATOR 1
+#define FIRST_LEVEL_GENERATOR  2
+#define SECOND_LEVEL_GENERATOR 2
 #define THIRD_LEVEL_GENERATOR  1
 
 // XXX not use 360 - because in this case we has a problem wiht normalizing

@@ -287,6 +287,45 @@ SCENARIO("test Scene", "[Scene]") {
     }
   }
 
+  GIVEN("Scene with several nested Item-s") {
+    std::shared_ptr<svc::Scene> scene = std::make_shared<svc::Scene>();
+
+    svc::ItemPtr first  = std::make_shared<BasicItem>();
+    svc::ItemPtr second = std::make_shared<BasicItem>();
+    svc::ItemPtr third  = std::make_shared<BasicItem>();
+    svc::ItemPtr fourd  = std::make_shared<BasicItem>();
+
+    first->appendChild(second);
+    second->appendChild(third);
+    third->appendChild(fourd);
+
+    scene->appendItem(first);
+
+    THEN("all Items must be on Scene") {
+      CHECK(scene->count() == 4);
+
+      CHECK(first->getScene() == scene.get());
+      CHECK(second->getScene() == scene.get());
+      CHECK(third->getScene() == scene.get());
+      CHECK(fourd->getScene() == scene.get());
+    }
+
+    WHEN("remove root item") {
+      scene->removeItem(first);
+
+      THEN("Scene must be empty") {
+        CHECK(scene->empty());
+      }
+
+      THEN("no one Item don't associated with the Scene") {
+        CHECK(first->getScene() == nullptr);
+        CHECK(second->getScene() == nullptr);
+        CHECK(third->getScene() == nullptr);
+        CHECK(fourd->getScene() == nullptr);
+      }
+    }
+  }
+
   GIVEN("two Scene and Item-s for changing ownership") {
     std::shared_ptr<svc::Scene> scene1 = std::make_shared<svc::Scene>();
     std::shared_ptr<svc::Scene> scene2 = std::make_shared<svc::Scene>();
@@ -478,37 +517,31 @@ SCENARIO("test Scene", "[Scene]") {
 
     scene->appendItem(item);
 
-    //  WHEN("move position") {
-    //    svc::Point diff = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+    WHEN("move position") {
+      svc::Point newPos = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
 
-    //    bool byScene = GENERATE(false, true);
-    //    if (byScene) {
-    //      scene->moveItem(item, diff);
-    //    } else {
-    //      item->moveOn(diff);
-    //    }
+      item->setScenePos(newPos);
 
-    //    THEN("Scene must contains only one Item") {
-    //      CHECK(scene->count() == 1);
-    //    }
+      THEN("Scene must contains only one Item") {
+        CHECK(scene->count() == 1);
+      }
 
-    //    THEN("we must get the Item by new position") {
-    //      svc::ItemList list = scene->query(initialPoint + diff);
+      THEN("we must get the Item by new position") {
+        svc::ItemList list = scene->query(newPos);
 
-    //      CHECK(list.size() == 1);
-    //    }
+        CHECK(list.size() == 1);
+      }
 
-    //    THEN("if diff was more then diagonal of bounding box, then we can not
-    //    "
-    //         "get the Item by previous position") {
-    //      float diag       = bq::mag(svc::Point{10, 10});
-    //      float diffLenght = bq::mag(diff);
+      THEN("if diff was more then diagonal of bounding box, then we can not"
+           "get the Item by previous position") {
+        float diag       = bq::mag(svc::Point{10, 10});
+        float diffLenght = bq::mag(newPos - initialPoint);
 
-    //      if (diag > diffLenght) {
-    //        svc::ItemList list = scene->query(initialPoint);
-    //        CHECK(list.size() == 0);
-    //      }
-    //    }
-    //  }
+        if (diag > diffLenght) {
+          svc::ItemList list = scene->query(initialPoint);
+          CHECK(list.size() == 0);
+        }
+      }
+    }
   }
 }

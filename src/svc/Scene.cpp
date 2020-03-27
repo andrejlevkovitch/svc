@@ -174,7 +174,10 @@ Scene::~Scene() noexcept {
 static void recursiveChildCall(std::function<void(ItemPtr &)> foo,
                                ItemPtr &                      item) {
   std::list<ItemPtr> children = item->getChildren();
-  for_each(children.begin(), children.end(), foo);
+  for_each(children.begin(), children.end(), [foo](ItemPtr &child) {
+    foo(child);
+    recursiveChildCall(foo, child);
+  });
 }
 
 void Scene::appendItem(ItemPtr &item) {

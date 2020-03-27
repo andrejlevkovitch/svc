@@ -1,5 +1,20 @@
 // AbstractItem.hpp
 /**\file
+ * Every Item has 3 types of koordinates:
+ * - item koordinates
+ * - parent koordinates
+ * - scene koordinates
+ *
+ * Item koordinates are koordinates, where {0, 0} is a center of the Item. For
+ * example: if Item has Scene position as {10, 0} and rotation angle as 90 deg
+ * clockwise, then vector from the Item to Scene position {8, 0} in item
+ * koordinates will be {0, 2}
+ *
+ * Parent koordinates are koordinates relatively to parent of the Item. If the
+ * Item don't has any parent, then the koordinates will be same to Scene
+ * koordinates
+ *
+ * Scene koordinates are absolute koordinates.
  */
 
 #pragma once
@@ -20,7 +35,7 @@ using ItemPtr = std::shared_ptr<AbstractItem>;
  * Realised as Compositor
  * \todo think about scaling - is this needed?
  */
-class AbstractItem {
+class AbstractItem : protected std::enable_shared_from_this<AbstractItem> {
   friend Scene;
 
 public:
@@ -30,9 +45,7 @@ public:
   virtual ~AbstractItem() noexcept;
 
   /**\return bounding box which bounded all shape of the Item. Must be in item
-   * koordinates, so {0, 0} point is same to point returned by getPos function
-   *
-   * \see getPos
+   * koordinates
    *
    * \note all shape of Item must be in the bounding box. It is needed for
    * queries by positions, intersections and collisions
@@ -64,19 +77,18 @@ public:
   Point getScenePos() const noexcept;
 
   /**\return current position of Item in parent koordinates (relatively to
-   * parent position). If Item not has a parent then return values will be as
-   * Scene kooridnate
+   * parent position). If Item don't has any parent then return values will be
+   * as Scene kooridnate
    *
    * \see getScenePos
    */
   Point getPos() const noexcept;
 
-  /**\brief move Item on diff relatively to current position (in Item
-   * koordinates)
+  /**\brief move Item on diff relatively to current position
    *
    * \note the operation change Scene position of all child Item-s
    *
-   * \param diff vector for change current position
+   * \param diff vector in Item koordinates
    */
   void moveOn(Point diff) noexcept;
 
@@ -131,17 +143,6 @@ public:
    */
   void setSceneRotation(float angle, Point anchor = {0, 0}) noexcept;
 
-  /**\return affine transformation matrix for the Item relatively to parent. If
-   * Item not has a parent it will be same as Scene matrix
-   *
-   * \see getSceneMatrix
-   */
-  Matrix getMatrix() const noexcept;
-
-  /**\return affine transformation matrix for the Item relatively to Scene
-   */
-  Matrix getSceneMatrix() const noexcept;
-
   /**\return parent of the Item or nullptr if Item not have any parent
    */
   AbstractItem *getParent() const noexcept;
@@ -170,6 +171,18 @@ public:
    * \note it remove the Item from Scene
    */
   void removeChild(ItemPtr &child);
+
+protected:
+  /**\return affine transformation matrix for the Item relatively to parent. If
+   * Item not has a parent it will be same as Scene matrix
+   *
+   * \see getSceneMatrix
+   */
+  Matrix getMatrix() const noexcept;
+
+  /**\return affine transformation matrix for the Item relatively to Scene
+   */
+  Matrix getSceneMatrix() const noexcept;
 
 private:
   void setScene(Scene *scene) noexcept;

@@ -1,6 +1,9 @@
 // Scene.hpp
-/**\file
- * Use visitors for manage Items on Scene
+/**\file provide object for manage many Items in cartesian space
+ *
+ * \note Use visitors for manage Items on Scene
+ *
+ * \note Scene uses cartesian koordinate system
  */
 
 #pragma once

@@ -1,5 +1,8 @@
 // AbstractItem.hpp
-/**\file
+/**\file provide base class for Items
+ *
+ * \note Item uses cartesian koordinate system
+ *
  * Every Item has 3 types of koordinates:
  * - item koordinates
  * - parent koordinates

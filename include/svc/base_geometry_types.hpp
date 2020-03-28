@@ -62,6 +62,14 @@ struct Size_ final {
   inline AritmeticType height() const noexcept {
     return a[1];
   }
+
+  Size_ operator-(Size_ second) {
+    return Size_{a[0] - second.a[0], a[1] - second.a[1]};
+  }
+
+  Size_ operator+(Size_ second) {
+    return Size_{a[0] + second.a[0], a[1] + second.a[1]};
+  }
 };
 
 template <typename AritmeticType>
@@ -72,11 +80,13 @@ using Point  = Point_<float>;
 using Size   = Size_<float>;
 using Box    = Box_<float>;
 
+using ScaleFactors = std::pair<float, float>;
+
 /**\brief affine transformation matrix
  */
 using Matrix = bq::mat<float, 3, 3>;
 
-inline std::pair<float, float> getScale(const Matrix &mat) {
+inline ScaleFactors getScaleFactors(const Matrix &mat) {
   std::pair<float, float> xVec{mat.a[0][0], mat.a[1][0]};
   std::pair<float, float> yVec{mat.a[0][1], mat.a[1][1]};
 
@@ -85,7 +95,7 @@ inline std::pair<float, float> getScale(const Matrix &mat) {
 }
 
 inline float getRotation(const Matrix &mat) {
-  auto [xFactor, yFactor] = getScale(mat);
+  auto [xFactor, yFactor] = getScaleFactors(mat);
   float sinAngl           = mat.a[0][1] / yFactor;
   float cosAngl           = mat.a[0][0] / xFactor;
   return std::atan2(-sinAngl, cosAngl);

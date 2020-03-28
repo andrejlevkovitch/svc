@@ -19,6 +19,12 @@
         float(GENERATE(take(NUM, random(-1000, 1000))))                        \
   }
 
+#define SIZE_GENERATOR(NUM)                                                    \
+  svc::Size {                                                                  \
+    float(GENERATE(take(NUM, random(10, 1000)))),                              \
+        float(GENERATE(take(NUM, random(10, 1000))))                           \
+  }
+
 // the check about 0 is needed becuase epsilon is relative to variable. So if
 // variable is 0, then epsilon also is 0
 #define CHECK_POINTS_EQUAL(first, second)                                      \

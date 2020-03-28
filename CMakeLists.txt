@@ -17,6 +17,7 @@ set(SVC_SRC
 
   src/svc/Scene.cpp
   src/svc/AbstractItem.cpp
+  src/svc/AbstractView.cpp
   )
 
 add_library(${PROJECT_NAME} ${SVC_SRC})
@@ -34,3 +35,4 @@ endif()
 catch2_test_register(test_scene     tests/test_Scene.cpp)
 catch2_test_register(test_item      tests/test_Item.cpp)
 catch2_test_register(test_rect      tests/test_Rect.cpp)
+catch2_test_register(test_view      tests/test_View.cpp)

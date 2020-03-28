@@ -29,5 +29,15 @@
     CHECK(Approx{(first).y()}.epsilon(0.01) == (second).y());                  \
   }
 
+#define CHECK_SIZES_EQUAL(first, second)                                       \
+  if (!((int)(first).width() == (int)(second).width() &&                       \
+        (int)(second).width() == 0)) {                                         \
+    CHECK(Approx{(first).width()}.epsilon(0.01) == (second).width());          \
+  }                                                                            \
+  if (!((int)(first).height() == (int)(second).height() &&                     \
+        (int)(second).height() == 0)) {                                        \
+    CHECK(Approx{(first).height()}.epsilon(0.01) == (second).height());        \
+  }
+
 #define CHECK_ANGLES_EQUAL(first, second)                                      \
   CHECK(Approx{NORM_RADIANS(first)}.epsilon(0.01) == NORM_RADIANS(second));

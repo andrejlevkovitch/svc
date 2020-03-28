@@ -13,6 +13,8 @@ add_subdirectory(third-party)
 find_package(Boost REQUIRED)
 
 set(SVC_SRC
+  src/svc/Rect.cpp
+
   src/svc/Scene.cpp
   src/svc/AbstractItem.cpp
   )
@@ -31,3 +33,4 @@ endif()
 # add tests
 catch2_test_register(test_scene     tests/test_Scene.cpp)
 catch2_test_register(test_item      tests/test_Item.cpp)
+catch2_test_register(test_rect      tests/test_Rect.cpp)

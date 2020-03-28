@@ -39,14 +39,27 @@ namespace svc {
  * default konstructor the variable will contain a garbage
  */
 template <typename AritmeticType>
-struct Point_ {
+struct Point_ final {
   AritmeticType a[2];
 
-  inline float x() const {
+  inline AritmeticType x() const noexcept {
     return a[0];
   }
 
-  inline float y() const {
+  inline AritmeticType y() const noexcept {
+    return a[1];
+  }
+};
+
+template <typename AritmeticType>
+struct Size_ final {
+  AritmeticType a[2];
+
+  inline AritmeticType width() const noexcept {
+    return a[0];
+  }
+
+  inline AritmeticType height() const noexcept {
     return a[1];
   }
 };
@@ -56,11 +69,69 @@ using Box_ = bg::model::box<Point_<AritmeticType>>;
 
 using Vector = bq::vec<float, 3>;
 using Point  = Point_<float>;
+using Size   = Size_<float>;
 using Box    = Box_<float>;
 
 /**\brief affine transformation matrix
  */
 using Matrix = bq::mat<float, 3, 3>;
+
+inline std::pair<float, float> getScale(const Matrix &mat) {
+  std::pair<float, float> xVec{mat.a[0][0], mat.a[1][0]};
+  std::pair<float, float> yVec{mat.a[0][1], mat.a[1][1]};
+
+  return {std::sqrt(std::pow(xVec.first, 2) + std::pow(xVec.second, 2)),
+          std::sqrt(std::pow(yVec.first, 2) + std::pow(yVec.second, 2))};
+}
+
+inline float getRotation(const Matrix &mat) {
+  auto [xFactor, yFactor] = getScale(mat);
+  float sinAngl           = mat.a[0][1] / yFactor;
+  float cosAngl           = mat.a[0][0] / xFactor;
+  return std::atan2(-sinAngl, cosAngl);
+}
+
+/**\brief similar to Box, but provide rotating
+ *
+ * \note if you not need rotation the highly recomended to use Box
+ */
+class Rect final {
+public:
+  /**\param anchor relative to minCorner
+   *
+   * \param angle in radians
+   */
+  Rect(Point minCorner, Size size, float angle, Point anchor = {0, 0});
+
+  void  setMinCorner(Point minCorner) noexcept;
+  Point getMinCorner() const noexcept;
+
+  void setSize(Size size) noexcept;
+  Size size() const noexcept;
+
+  /**\param anchor relative to minCorner
+   *
+   * \param angle in radians
+   */
+  void rotate(float angle, Point anchor = {0, 0}) noexcept;
+
+  /**\param anchor relative to minCorner
+   *
+   * \param angle in radians
+   */
+  void setRotation(float angle, Point anchor = {0, 0}) noexcept;
+
+  /**\return angle in radians
+   */
+  float getRotation() const noexcept;
+
+  void   setMatrix(Matrix mat) noexcept;
+  Matrix getMatrix() const noexcept;
+
+private:
+  Matrix matrix_;
+  Size   size_;
+};
 } // namespace svc
 
 // add point traits for Point_

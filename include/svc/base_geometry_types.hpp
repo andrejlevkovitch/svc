@@ -103,6 +103,9 @@ public:
    */
   Rect(Point minCorner, Size size, float angle, Point anchor = {0, 0});
 
+  /**\brief move the Rect on vector vec
+   */
+  void  moveOn(Point vec) noexcept;
   void  setMinCorner(Point minCorner) noexcept;
   Point getMinCorner() const noexcept;
 

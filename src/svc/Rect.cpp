@@ -70,4 +70,8 @@ void Rect::setMatrix(Matrix mat) noexcept {
 Matrix Rect::getMatrix() const noexcept {
   return matrix_;
 }
+
+void Rect::moveOn(Point diff) noexcept {
+  matrix_ *= bq::translation_mat(diff);
+}
 } // namespace svc

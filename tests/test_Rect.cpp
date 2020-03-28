@@ -48,7 +48,7 @@ SCENARIO("test Rect", "[Rect]") {
         CHECK_ANGLES_EQUAL(rect.getRotation(), angle);
       }
 
-      THEN("minCorner was changed") {
+      THEN("minCorner changed") {
         svc::Point currentMinCorner = rect.getMinCorner();
         svc::Point mustBeCorner     = minCorner + svc::Point{0, -5};
 
@@ -77,6 +77,35 @@ SCENARIO("test Rect", "[Rect]") {
 
       THEN("minCorner must be equal to point that was set") {
         CHECK_POINTS_EQUAL(rect.getMinCorner(), newMinCorner);
+      }
+    }
+
+    WHEN("move on some vector") {
+      svc::Point vec = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+
+      rect.moveOn(vec);
+
+      THEN("new minCorner must be as previous + vec") {
+        svc::Point currentMinCorner = rect.getMinCorner();
+
+        CHECK_POINTS_EQUAL(currentMinCorner, minCorner + vec);
+      }
+    }
+
+    WHEN("move on some vector after rotation") {
+      float angle = TO_RAD(90);
+      rect.setRotation(angle);
+
+      svc::Point vec = POINT_GENERATOR(SECOND_LEVEL_GENERATOR);
+
+      rect.moveOn(vec);
+
+      THEN("then check new minCorner") {
+        svc::Point realVec{-vec.y(), vec.x()}; // rotate on 90 deg
+
+        svc::Point currentMinCorner = rect.getMinCorner();
+
+        CHECK_POINTS_EQUAL(currentMinCorner, minCorner + realVec);
       }
     }
   }

@@ -10,21 +10,6 @@
 #include <boost/qvm/swizzle.hpp>
 
 namespace svc {
-std::pair<float, float> getScale(const Matrix &mat) {
-  std::pair<float, float> xVec{mat.a[0][0], mat.a[1][0]};
-  std::pair<float, float> yVec{mat.a[0][1], mat.a[1][1]};
-
-  return {std::sqrt(std::pow(xVec.first, 2) + std::pow(xVec.second, 2)),
-          std::sqrt(std::pow(yVec.first, 2) + std::pow(yVec.second, 2))};
-}
-
-float getRotation(const Matrix &mat) {
-  auto [xFactor, yFactor] = getScale(mat);
-  float sinAngl           = mat.a[0][1] / yFactor;
-  float cosAngl           = mat.a[0][0] / xFactor;
-  return std::atan2(-sinAngl, cosAngl);
-}
-
 using ItemPtr  = ItemPtr;
 using Children = AbstractItem::Children;
 
@@ -47,9 +32,8 @@ public:
   }
 
   inline Point getPos() const noexcept {
-    Vector pos{0, 0, 1};
-    pos = matrix_ * pos;
-    return bq::XY(pos);
+    Point pos = bq::translation(matrix_);
+    return pos;
   }
 
   inline Matrix getMatrix() const noexcept {
@@ -61,32 +45,29 @@ public:
   }
 
   inline float getRotation() const noexcept {
-    Matrix mat = matrix_;
-    return svc::getRotation(mat);
+    float angle = svc::getRotation(matrix_);
+    return angle;
   }
 
   inline void rotate(float angle, Point anchor) noexcept {
     Matrix translationMat = bq::translation_mat(anchor);
-    Matrix rotationMat    = bq::rotz_mat<3>(angle);
 
-    Matrix newMat = bq::diag_mat(Vector{1, 1, 1});
-    newMat *= translationMat;
-    newMat *= rotationMat;
-    newMat *= bq::inverse(translationMat);
+    Matrix rotationMat = translationMat;
+    rotationMat *= bq::rotz_mat<3>(angle);
+    rotationMat *= bq::inverse(translationMat);
 
-    matrix_ *= newMat;
+    matrix_ *= rotationMat;
   }
 
   inline void setRotation(float angle, Point anchor) noexcept {
     Matrix translationMat = bq::translation_mat(anchor);
-    Matrix rotationMat    = bq::rotz_mat<3>(angle);
 
-    Matrix newMat = bq::translation_mat(bq::translation(matrix_));
-    newMat *= translationMat;
-    newMat *= rotationMat;
-    newMat *= bq::inverse(translationMat);
+    Matrix resultMat = bq::translation_mat(bq::translation(matrix_));
+    resultMat *= translationMat;
+    resultMat *= bq::rotz_mat<3>(angle);
+    resultMat *= bq::inverse(translationMat);
 
-    matrix_ = std::move(newMat);
+    matrix_ = std::move(resultMat);
   }
 
 private:
@@ -126,11 +107,9 @@ Point AbstractItem::getPos() const noexcept {
 }
 
 Point AbstractItem::getScenePos() const noexcept {
-  Matrix      matrix = this->getSceneMatrix();
-  svc::Vector vec{0, 0, 1};
-  svc::Vector pos = matrix * vec;
-
-  return bq::XY(pos);
+  Matrix     matrix = this->getSceneMatrix();
+  svc::Point pos    = bq::translation(matrix);
+  return pos;
 }
 
 void AbstractItem::moveOn(Point diff) {
@@ -290,21 +269,20 @@ void AbstractItem::setRotation(float angle, Point anchor) {
 
 void AbstractItem::setSceneRotation(float angle, Point anchor) {
   Matrix translationMat = bq::translation_mat(anchor);
-  Matrix rotationMat    = bq::rotz_mat<3>(angle);
 
   Matrix currentMat = imp_->getMatrix();
 
-  Matrix newMat = bq::translation_mat(bq::translation(currentMat));
-  newMat *= translationMat;
-  newMat *= rotationMat;
-  newMat *= bq::inverse(translationMat);
+  Matrix resultMat = bq::translation_mat(bq::translation(currentMat));
+  resultMat *= translationMat;
+  resultMat *= bq::rotz_mat<3>(angle);
+  resultMat *= bq::inverse(translationMat);
 
   if (this->parent_) {
     Matrix parentMatrix = this->parent_->getSceneMatrix();
-    newMat *= bq::inverse(parentMatrix);
+    resultMat *= bq::inverse(parentMatrix);
   }
 
-  imp_->setMatrix(std::move(newMat));
+  imp_->setMatrix(std::move(resultMat));
 
   if (anchor != Point{0, 0} && scene_) {
     scene_->updateItemPosition(this);

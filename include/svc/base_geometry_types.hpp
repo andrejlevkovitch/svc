@@ -70,6 +70,18 @@ struct Size_ final {
   Size_ operator+(Size_ second) {
     return Size_{a[0] + second.a[0], a[1] + second.a[1]};
   }
+
+  Size_ operator/(float n) {
+    return Size_{a[0] / n, a[1] / n};
+  }
+
+  Size_ operator*(float n) {
+    return Size_{a[0] * n, a[1] * n};
+  }
+
+  operator Point_<AritmeticType>() const {
+    return Point_<AritmeticType>{a[0], a[1]};
+  }
 };
 
 template <typename AritmeticType>

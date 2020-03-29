@@ -60,8 +60,10 @@ public:
    */
   virtual Box getBoundingBox() const noexcept = 0;
 
-  /**\brief for ierarchy of Item-s must be realized ierarchy of visitors.
-   * Default realization just call accept for children
+  /**\brief for ierarchy of Item-s must be realized ierarchy of visitors
+   *
+   * \note hidhly recomended don't add visiting children in the method. It must
+   * be a logic of visitior
    *
    * \note AbstractVisitor not a part of basic classes, this is a placeholder.
    * New Item ierarchy must be realize with parallel ierarchy of visitors. You

@@ -293,12 +293,6 @@ void AbstractItem::setScene(Scene *scene) noexcept {
   scene_ = scene;
 }
 
-void AbstractItem::accept(AbstractVisitor *visitor) {
-  std::for_each(children_.begin(), children_.end(), [visitor](ItemPtr &child) {
-    child->accept(visitor);
-  });
-}
-
 bool AbstractItem::empty() const noexcept {
   return children_.empty();
 }

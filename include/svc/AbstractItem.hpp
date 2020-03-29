@@ -157,7 +157,7 @@ public:
    * \warning if you append parent (or parent of parent) of the Item to children
    * it produce undefined behaviour
    */
-  void appendChild(ItemPtr &child);
+  void appendChild(ItemPtr child);
 
   /**\brief remove the child from children of the item.
    *

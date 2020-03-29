@@ -232,7 +232,7 @@ static void recursiveChildCall(std::function<void(ItemPtr &)> foo,
   });
 }
 
-void Scene::appendItem(ItemPtr &item) {
+void Scene::appendItem(ItemPtr item) {
   if (item.get() == nullptr) {
     LOG_THROW(std::runtime_error, "can't append invalid item");
   }

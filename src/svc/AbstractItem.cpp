@@ -154,7 +154,7 @@ Children AbstractItem::getChildren() const noexcept {
   return children_;
 }
 
-void AbstractItem::appendChild(ItemPtr &child) {
+void AbstractItem::appendChild(ItemPtr child) {
   if (child.get() == nullptr) {
     LOG_THROW(std::runtime_error, "can't append invalid child");
   }
@@ -176,7 +176,7 @@ void AbstractItem::appendChild(ItemPtr &child) {
   this->children_.emplace_back(child);
 
   if (Scene *childScene = child->getScene(); scene_ && (childScene != scene_)) {
-    scene_->appendItem(child);
+    scene_->appendItem(std::move(child));
   } else if (scene_ == nullptr && childScene) {
     childScene->removeItem(child.get());
   }

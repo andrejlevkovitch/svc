@@ -45,7 +45,7 @@ public:
    * \note if the Item associated with some other Scene then it will be removed
    * from it
    */
-  void appendItem(ItemPtr &item);
+  void appendItem(ItemPtr item);
 
   /**\brief remove Item from scene. If Item has some children they also will be
    * removed from the Scene

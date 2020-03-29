@@ -93,9 +93,9 @@ AbstractItem::~AbstractItem() noexcept {
 
 #ifndef NDEBUG
   children_.clear();
-  imp_    = nullptr;
-  scene_  = nullptr;
-  parent_ = nullptr;
+  imp_    = (AbstractItemImp *)0xdeadbeef;
+  scene_  = (Scene *)0xdeadbeef;
+  parent_ = (AbstractItem *)0xdeadbeef;
 #endif
 }
 

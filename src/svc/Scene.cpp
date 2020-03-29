@@ -217,6 +217,10 @@ Scene::~Scene() noexcept {
   });
 
   delete imp_;
+
+#ifndef NDEBUG
+  imp_ = (SceneImp *)0xdeadbeef;
+#endif
 }
 
 static void recursiveChildCall(std::function<void(ItemPtr &)> foo,

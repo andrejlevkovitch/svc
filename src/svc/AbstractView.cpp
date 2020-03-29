@@ -75,6 +75,10 @@ AbstractView::AbstractView() noexcept
 
 AbstractView::~AbstractView() noexcept {
   delete imp_;
+
+#ifndef NDEBUG
+  imp_ = (AbstractViewImp *)0xdeadbeef;
+#endif
 }
 
 void AbstractView::setScene(ScenePtr scene) noexcept {

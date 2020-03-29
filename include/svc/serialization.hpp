@@ -40,7 +40,7 @@ void load(Archive &                           ar,
   ar &          mat;
   ar &          children;
 
-  item.setMatrix(mat);
+  item.setMatrix(std::move(mat));
   for (svc::ItemPtr &child : children) {
     item.appendChild(child);
   }

@@ -10,7 +10,7 @@ include(cmake/catch2_test_register.cmake)
 
 add_subdirectory(third-party)
 
-find_package(Boost REQUIRED)
+find_package(Boost COMPONENTS serialization REQUIRED)
 
 set(SVC_SRC
   src/svc/Rect.cpp
@@ -23,8 +23,9 @@ set(SVC_SRC
 add_library(${PROJECT_NAME} ${SVC_SRC})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_include_directories(${PROJECT_NAME} PUBLIC include)
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(${PROJECT_NAME} INTERFACE
   Boost::boost
+  ${Boost_LIBRARIES}
   )
 if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
   target_compile_options(${PROJECT_NAME} PUBLIC -DCOLORIZED)
@@ -32,7 +33,8 @@ endif()
 
 
 # add tests
-catch2_test_register(test_scene     tests/test_Scene.cpp)
-catch2_test_register(test_item      tests/test_Item.cpp)
-catch2_test_register(test_rect      tests/test_Rect.cpp)
-catch2_test_register(test_view      tests/test_View.cpp)
+catch2_test_register(test_scene         tests/test_Scene.cpp)
+catch2_test_register(test_item          tests/test_Item.cpp)
+catch2_test_register(test_rect          tests/test_Rect.cpp)
+catch2_test_register(test_view          tests/test_View.cpp)
+catch2_test_register(test_serialization tests/test_serialization.cpp)

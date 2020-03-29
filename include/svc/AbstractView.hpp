@@ -12,6 +12,7 @@
 
 namespace svc {
 class Scene;
+class AbstractVisitor;
 
 class AbstractViewImp;
 
@@ -58,6 +59,11 @@ public:
   /**\param anchor in View koordinates
    */
   void scaleSceneRect(ScaleFactors factors, Point anchor = {0, 0}) noexcept;
+
+  /**\brief iterate all Items (without hierarchy) in Scene Rect and call accept
+   * method for each
+   */
+  void accept(AbstractVisitor *visitor);
 
 protected:
   /**\return transformation matrix for transform points in View koordinates to

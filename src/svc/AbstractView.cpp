@@ -3,6 +3,8 @@
 #include "svc/AbstractView.hpp"
 #include <boost/qvm/map_vec_mat.hpp>
 #include <boost/qvm/swizzle.hpp>
+#include <svc/AbstractItem.hpp>
+#include <svc/Scene.hpp>
 
 namespace svc {
 class AbstractViewImp {
@@ -134,5 +136,14 @@ void AbstractView::setSceneTransformMatrix(Matrix mat) noexcept {
 
 Point AbstractView::mapToScene(Point viewPoint) const noexcept {
   return imp_->map(viewPoint);
+}
+
+void AbstractView::accept(AbstractVisitor *visitor) {
+  if (scene_) {
+    ItemList list = scene_->query(this->getSceneRect());
+    std::for_each(list.begin(), list.end(), [visitor](ItemPtr &item) {
+      item->accept(visitor);
+    });
+  }
 }
 } // namespace svc

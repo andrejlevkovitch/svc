@@ -22,6 +22,13 @@ Rect::Rect(Point minCorner, Size size, float angle, Point anchor)
   matrix_ *= rotationMat;
 }
 
+Rect::Rect(Box box) {
+  svc::Point diag = box.max_corner() - box.min_corner();
+  size_           = svc::Size{diag.x(), diag.y()};
+
+  matrix_ = bq::translation_mat(box.min_corner());
+}
+
 void Rect::setMinCorner(Point minCorner) noexcept {
   bq::translation(matrix_) = minCorner;
 }

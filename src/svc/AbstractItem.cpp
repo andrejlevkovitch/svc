@@ -79,7 +79,8 @@ private:
 
 AbstractItem::AbstractItem() noexcept
     : imp_{new AbstractItemImp{}}
-    , scene_{nullptr} {
+    , scene_{nullptr}
+    , parent_{nullptr} {
 }
 
 AbstractItem::~AbstractItem() noexcept {

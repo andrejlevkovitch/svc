@@ -186,7 +186,6 @@ public:
    */
   AbstractItem *getParent() const noexcept;
 
-protected:
   /**\return affine transformation matrix for the Item relatively to parent. If
    * Item not has a parent it will be same as Scene matrix
    *

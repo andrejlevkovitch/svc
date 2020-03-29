@@ -326,6 +326,20 @@ void Scene::accept(AbstractVisitor *visitor) {
     }
   });
 }
+
+ItemList Scene::rootItems() const noexcept {
+  ItemList retval;
+  std::copy_if(imp_->begin(),
+               imp_->end(),
+               std::back_inserter(retval),
+               [](const ItemPtr &item) {
+                 if (item->parent_) {
+                   return false;
+                 }
+                 return true;
+               });
+  return retval;
+}
 } // namespace svc
 
 namespace std {

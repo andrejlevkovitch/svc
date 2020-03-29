@@ -101,6 +101,10 @@ public:
    */
   void accept(AbstractVisitor *visitor);
 
+  /**\return Items without parents
+   */
+  ItemList rootItems() const noexcept;
+
 private:
   SceneImp *imp_;
 };

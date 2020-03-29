@@ -7,6 +7,9 @@
 
 #include "svc/base_geometry_types.hpp"
 #include "test_auxilary.hpp"
+#include <boost/geometry/algorithms/is_valid.hpp>
+#include <boost/geometry/strategies/strategies.hpp>
+#include <boost/qvm/swizzle.hpp>
 
 SCENARIO("test Rect", "[Rect]") {
   GIVEN("simple Rect without rotation") {
@@ -131,6 +134,38 @@ SCENARIO("test Rect", "[Rect]") {
         float mustBeAngle = angle + rotateOn;
 
         CHECK_ANGLES_EQUAL(rect.getRotation(), mustBeAngle);
+      }
+    }
+
+    WHEN("transform the Rect to Ring") {
+      svc::Ring ring = rect;
+
+      THEN("ring must be valid") {
+        CHECK(boost::geometry::is_valid(ring));
+      }
+
+      THEN("ring must has 4 points") {
+        CHECK(ring.size() == 4);
+      }
+
+      THEN("output ring must has same area as rect") {
+        float ringArea = bg::area(ring);
+
+        float rectArea = bg::area(svc::Box{{0, 0}, svc::Point(rect.size())});
+
+        CHECK(Approx(ringArea).epsilon(0.01) == rectArea);
+      }
+
+      THEN("first point must be equal to minCorner and third must be equal to "
+           "maxCorner of rect") {
+        CHECK_POINTS_EQUAL(ring[0], rect.getMinCorner());
+
+        svc::Point  rectSize = rect.size();
+        svc::Matrix rectMat  = rect.getMatrix();
+        svc::Point  maxCorner =
+            boost::qvm::XY(rectMat * boost::qvm::XY1(rectSize));
+
+        CHECK_POINTS_EQUAL(ring[2], maxCorner);
       }
     }
   }

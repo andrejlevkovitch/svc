@@ -5,6 +5,7 @@
 #pragma once
 
 #include <boost/geometry/geometries/box.hpp>
+#include <boost/geometry/geometries/ring.hpp>
 #include <boost/qvm/mat.hpp>
 #include <boost/qvm/mat_operations.hpp>
 #include <boost/qvm/vec.hpp>
@@ -84,13 +85,14 @@ struct Size_ final {
   }
 };
 
-template <typename AritmeticType>
-using Box_ = bg::model::box<Point_<AritmeticType>>;
-
 using Vector = bq::vec<float, 3>;
 using Point  = Point_<float>;
 using Size   = Size_<float>;
-using Box    = Box_<float>;
+using Box    = bg::model::box<Point>;
+
+/**\brief clockwised (in cartesian koordinate system) convex polygon
+ */
+using Ring = bg::model::ring<Point, true, false>;
 
 using ScaleFactors = std::pair<float, float>;
 
@@ -152,6 +154,8 @@ public:
 
   void   setMatrix(Matrix mat) noexcept;
   Matrix getMatrix() const noexcept;
+
+  operator Ring() const noexcept;
 
 private:
   Matrix matrix_;

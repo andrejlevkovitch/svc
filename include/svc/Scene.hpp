@@ -28,7 +28,11 @@ using ItemList = std::list<ItemPtr>;
  */
 class Scene {
 public:
-  enum class SpatialIndex { Intersects, Within };
+  enum class SpatialIndex {
+    Intersects,
+    /// only for Box, cause undefined behaviour for Ring
+    Within,
+  };
 
   Scene() noexcept;
   virtual ~Scene() noexcept;
@@ -90,8 +94,10 @@ public:
   ItemList query(Box box, SpatialIndex index = SpatialIndex::Intersects) const
       noexcept;
 
-  /**\brief iterate all main Items (without parents) and call accept method.
-   * Highly recomended use visitor for iterate Items
+  ItemList query(Ring ring, SpatialIndex index = SpatialIndex::Intersects) const
+      noexcept;
+
+  /**\brief iterate all main Items (without parents) and call accept method
    */
   void accept(AbstractVisitor *visitor);
 

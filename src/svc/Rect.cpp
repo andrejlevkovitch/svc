@@ -1,6 +1,8 @@
 // Rect.cpp
 
 #include "svc/base_geometry_types.hpp"
+#include <boost/geometry/algorithms/transform.hpp>
+#include <boost/geometry/strategies/transform/matrix_transformers.hpp>
 #include <boost/qvm/map_mat_vec.hpp>
 #include <boost/qvm/map_vec_mat.hpp>
 
@@ -73,5 +75,20 @@ Matrix Rect::getMatrix() const noexcept {
 
 void Rect::moveOn(Point diff) noexcept {
   matrix_ *= bq::translation_mat(diff);
+}
+
+Rect::operator Ring() const noexcept {
+  Box box{{0, 0}, Point(this->size())};
+
+  Ring baseRing;
+  bg::convert(box, baseRing);
+
+  Ring retval;
+  bg::transform(
+      baseRing,
+      retval,
+      bg::strategy::transform::matrix_transformer<float, 2, 2>{matrix_});
+
+  return retval;
 }
 } // namespace svc

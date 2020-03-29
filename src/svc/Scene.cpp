@@ -1,6 +1,7 @@
 // Scene.cpp
 
 #include "svc/Scene.hpp"
+#include "asserts.hpp"
 #include "logs.hpp"
 #include "svc/AbstractItem.hpp"
 #include "svc/base_geometry_types.hpp"
@@ -10,6 +11,11 @@
 #include <boost/qvm/map_vec_mat.hpp>
 #include <iterator>
 #include <list>
+
+#ifndef NDEBUG
+#  include <boost/geometry/algorithms/is_convex.hpp>
+#  include <boost/geometry/algorithms/is_valid.hpp>
+#endif
 
 #define MAX_NUMBER_VALUES_IN_NODE 16
 
@@ -159,29 +165,39 @@ public:
   ItemList query(Point pos) const noexcept {
     ItemList retval;
 
-    tree_.query(
-        bg::index::covers(pos),
+    auto back_inserter =
         boost::make_function_output_iterator([&retval](const Value &val) {
           retval.emplace_back(std::get<ValueTypes::ItemType>(val));
-        }));
+        });
+
+    tree_.query(bg::index::covers(pos), back_inserter);
 
     return retval;
   }
 
-  ItemList query(Box box, Scene::SpatialIndex index) const noexcept {
+  template <typename GeometryType,
+            typename = typename std::enable_if<
+                bg::is_areal<GeometryType>::value>::type>
+  ItemList query(GeometryType                         geometry,
+                 [[maybe_unused]] Scene::SpatialIndex index) const noexcept {
     ItemList retval;
 
     auto back_inserter =
         boost::make_function_output_iterator([&retval](const Value &val) {
           retval.emplace_back(std::get<ValueTypes::ItemType>(val));
         });
-    switch (index) {
-    case Scene::SpatialIndex::Intersects:
-      tree_.query(bg::index::intersects(box), back_inserter);
-      break;
-    case Scene::SpatialIndex::Within:
-      tree_.query(bg::index::within(box), back_inserter);
-      break;
+
+    if constexpr (std::is_same<GeometryType, Box>::value) {
+      switch (index) {
+      case Scene::SpatialIndex::Intersects:
+        tree_.query(bg::index::intersects(geometry), back_inserter);
+        break;
+      case Scene::SpatialIndex::Within:
+        tree_.query(bg::index::within(geometry), back_inserter);
+        break;
+      }
+    } else {
+      tree_.query(bg::index::intersects(geometry), back_inserter);
     }
 
     return retval;
@@ -294,6 +310,13 @@ ItemList Scene::query(Point pos) const noexcept {
 
 ItemList Scene::query(Box box, SpatialIndex index) const noexcept {
   return imp_->query(box, index);
+}
+
+ItemList Scene::query(Ring ring, SpatialIndex index) const noexcept {
+  DEBBUG_ASSERT(bg::is_valid(ring) && bg::is_convex(ring),
+                "ring must be valid convex ring");
+
+  return imp_->query(ring, index);
 }
 
 void Scene::accept(AbstractVisitor *visitor) {

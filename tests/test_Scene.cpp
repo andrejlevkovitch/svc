@@ -394,7 +394,7 @@ SCENARIO("test Scene", "[Scene]") {
     }
   }
 
-  GIVEN("Scene with Items in same place") {
+  GIVEN("Scene with Items in some place") {
     std::shared_ptr<svc::Scene> scene = std::make_shared<svc::Scene>();
 
     svc::Point initialPoint = POINT_GENERATOR(FIRST_LEVEL_GENERATOR);
@@ -410,6 +410,41 @@ SCENARIO("test Scene", "[Scene]") {
 
     WHEN("query by point") {
       svc::ItemList list = scene->query(initialPoint);
+
+      THEN("list must contains both Items") {
+        REQUIRE(list.size() == 2);
+        CHECK(list.front() != list.back());
+      }
+    }
+
+    WHEN("query by box") {
+      svc::Box      box  = {initialPoint - svc::Point{10, 10},
+                      initialPoint + svc::Point{10, 10}};
+      svc::ItemList list = scene->query(box);
+
+      THEN("list must contains both Items") {
+        REQUIRE(list.size() == 2);
+        CHECK(list.front() != list.back());
+      }
+    }
+
+    WHEN("query by rect") {
+      svc::Rect rect{initialPoint - svc::Point{10, 10}, svc::Size{20, 20}, 0};
+
+      svc::ItemList list = scene->query(rect);
+
+      THEN("list must contains both Items") {
+        REQUIRE(list.size() == 2);
+        CHECK(list.front() != list.back());
+      }
+    }
+
+    WHEN("query by rect with rotation") {
+      svc::Rect rect{initialPoint + svc::Point{10, -10},
+                     svc::Size{20, 20},
+                     TO_RAD(90)};
+
+      svc::ItemList list = scene->query(rect);
 
       THEN("list must contains both Items") {
         REQUIRE(list.size() == 2);

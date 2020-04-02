@@ -12,7 +12,7 @@
 
 class View final : public svc::AbstractView {
 public:
-  svc::Size size() const noexcept override {
+  svc::Size getContextSize() const noexcept override {
     return size_;
   }
 
@@ -76,18 +76,18 @@ SCENARIO("test View", "[View]") {
       svc::Point zeroPoint{0, 0};
       CHECK_POINTS_EQUAL(sceneRect.getMinCorner(), zeroPoint);
 
-      CHECK_SIZES_EQUAL(sceneRect.size(), view.size());
+      CHECK_SIZES_EQUAL(sceneRect.size(), view.getContextSize());
 
       CHECK_ANGLES_EQUAL(sceneRect.getRotation(), 0);
     }
 
     WHEN("increase size of view") {
-      view.setSize(view.size() + svc::Size{10, 10});
+      view.setSize(view.getContextSize() + svc::Size{10, 10});
 
       THEN("size of scene rect also changed") {
         svc::Rect rect = view.getSceneRect();
 
-        CHECK_SIZES_EQUAL(rect.size(), view.size());
+        CHECK_SIZES_EQUAL(rect.size(), view.getContextSize());
       }
     }
   }
@@ -113,7 +113,7 @@ SCENARIO("test View", "[View]") {
     }
 
     WHEN("change size of view on N%") {
-      svc::Size viewSize = view.size();
+      svc::Size viewSize = view.getContextSize();
       svc::Size newSize  = {viewSize.width() * 1.1f, viewSize.height() * 1.1f};
 
       view.setSize(newSize);
@@ -140,9 +140,10 @@ SCENARIO("test View", "[View]") {
     View view;
 
     svc::Point minCorner = {0, 0}; // POINT_GENERATOR(FIRST_LEVEL_GENERATOR);
-    svc::Size  rectSize = view.size(); // SIZE_GENERATOR(FIRST_LEVEL_GENERATOR);
-    float      angle    = 0; // ANGLE_GENERATOR(FIRST_LEVEL_GENERATOR);
-    svc::Rect  rect     = {minCorner, rectSize, angle};
+    svc::Size  rectSize =
+        view.getContextSize(); // SIZE_GENERATOR(FIRST_LEVEL_GENERATOR);
+    float     angle = 0;       // ANGLE_GENERATOR(FIRST_LEVEL_GENERATOR);
+    svc::Rect rect  = {minCorner, rectSize, angle};
 
     view.setSceneRect(rect);
 
@@ -183,7 +184,8 @@ SCENARIO("test View", "[View]") {
     WHEN("rotate scene rect around some anchor") {
       float newAngle = ANGLE_GENERATOR(SECOND_LEVEL_GENERATOR);
 
-      view.rotateSceneRect(newAngle, view.size() / 2); // by center of the view
+      view.rotateSceneRect(newAngle,
+                           view.getContextSize() / 2); // by center of the view
 
       THEN("new angle of rect must be as sum of previous and new") {
         CHECK_ANGLES_EQUAL(angle + newAngle, view.getSceneRect().getRotation());
@@ -208,7 +210,8 @@ SCENARIO("test View", "[View]") {
     }
 
     WHEN("scale scene rect around some anchor") {
-      view.scaleSceneRect({2, 2}, view.size() / 2); // by center of the view
+      view.scaleSceneRect({2, 2},
+                          view.getContextSize() / 2); // by center of the view
 
       THEN("angle didn't change") {
         CHECK_ANGLES_EQUAL(angle, view.getSceneRect().getRotation());

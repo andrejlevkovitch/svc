@@ -95,7 +95,7 @@ void AbstractView::setSceneRect(Rect sceneRect) noexcept {
   // so, we get matrix, but it is without scale. Scale is ratio sizes of rect
   // and view and scene
   Size rectSize = sceneRect.size();
-  Size viewSize = this->size();
+  Size viewSize = this->getContextSize();
 
   float xFactor = rectSize.width() / viewSize.width();
   float yFactor = rectSize.height() / viewSize.height();
@@ -107,7 +107,7 @@ void AbstractView::setSceneRect(Rect sceneRect) noexcept {
 }
 
 Rect AbstractView::getSceneRect() const noexcept {
-  Size viewSize = this->size();
+  Size viewSize = this->getContextSize();
 
   Point minCorner         = imp_->map(Point{0, 0});
   float angle             = imp_->getRotation();

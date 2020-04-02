@@ -25,7 +25,7 @@ public:
 
   /**\return a render context size of the View
    */
-  virtual Size size() const noexcept = 0;
+  virtual Size getContextSize() const noexcept = 0;
 
   void setScene(ScenePtr scene) noexcept;
 

@@ -65,7 +65,6 @@ public:
    */
   void accept(AbstractVisitor *visitor);
 
-protected:
   /**\return transformation matrix for transform points in View koordinates to
    * Scene koordinates
    */

@@ -24,6 +24,8 @@ set(SVC_SRC
 
   src/svc/SDLView.cpp
   src/svc/SDLController.cpp
+
+  src/gl/misc.cpp
   )
 
 add_library(${PROJECT_NAME} ${SVC_SRC})

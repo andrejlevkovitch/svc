@@ -1,5 +1,6 @@
 // test_sdl.cpp
 
+#include "gl/misc.hpp"
 #include "logs.hpp"
 #include "svc/AbstractItem.hpp"
 #include "svc/SDLController.hpp"
@@ -11,56 +12,6 @@
 #include <boost/geometry/strategies/strategies.hpp>
 #include <chrono>
 #include <thread>
-
-#define SHADER_THROW(shader)                                                   \
-  {                                                                            \
-    GLint logLength = 0;                                                       \
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);                     \
-    std::string log;                                                           \
-    log.resize(logLength);                                                     \
-    glGetShaderInfoLog(shader, logLength, nullptr, log.data());                \
-    LOG_THROW(std::runtime_error, log);                                        \
-  }
-
-#define COMPILE_SHADER(shader, source)                                         \
-  {                                                                            \
-    const char *sourceString = source;                                         \
-    glShaderSource(shader, 1, &sourceString, nullptr);                         \
-    glCompileShader(shader);                                                   \
-    GLint compileStatus;                                                       \
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);                  \
-    if (compileStatus != GL_TRUE) {                                            \
-      SHADER_THROW(shader)                                                     \
-    }                                                                          \
-  }
-
-#define PROGRAM_THROW(program)                                                 \
-  {                                                                            \
-    GLint logLength = 0;                                                       \
-    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);                   \
-    std::string log;                                                           \
-    log.resize(logLength);                                                     \
-    glGetProgramInfoLog(program, logLength, nullptr, log.data());              \
-    LOG_THROW(std::runtime_error, log);                                        \
-  }
-
-#define LINK_PROGRAM(program, vertexShader, fragmentShader)                    \
-  {                                                                            \
-    glAttachShader(program, vertexShader);                                     \
-    glAttachShader(program, fragmentShader);                                   \
-    glLinkProgram(program);                                                    \
-    GLint linkStatus;                                                          \
-    glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);                      \
-    if (linkStatus != GL_TRUE) {                                               \
-      PROGRAM_THROW(program);                                                  \
-    }                                                                          \
-    glValidateProgram(program);                                                \
-    GLint validateStatus;                                                      \
-    glGetProgramiv(program, GL_VALIDATE_STATUS, &validateStatus);              \
-    if (validateStatus != GL_TRUE) {                                           \
-      PROGRAM_THROW(program);                                                  \
-    }                                                                          \
-  }
 
 class SimpleItem;
 
@@ -129,23 +80,25 @@ class GLRenderer final : public svc::AbstractVisitor {
 
 public:
   GLRenderer() {
+    program_        = glCreateProgram();
     vertexShader_   = glCreateShader(GL_VERTEX_SHADER);
     fragmentShader_ = glCreateShader(GL_FRAGMENT_SHADER);
+    GL_THROW_IF_ERROR();
 
-    COMPILE_SHADER(vertexShader_, vertexShaderSource);
-    COMPILE_SHADER(fragmentShader_, fragmentShaderSource);
+    gl::compileShader(vertexShaderSource, vertexShader_);
+    gl::compileShader(fragmentShaderSource, fragmentShader_);
 
     // at last link gl program
-    program_ = glCreateProgram();
-    LINK_PROGRAM(program_, vertexShader_, fragmentShader_);
+    gl::linkProgram(vertexShader_, fragmentShader_, program_);
 
     glUseProgram(program_);
+    GL_THROW_IF_ERROR();
   }
 
   ~GLRenderer() {
-    glDeleteProgram(program_);
     glDeleteShader(vertexShader_);
     glDeleteShader(fragmentShader_);
+    glDeleteProgram(program_);
   }
 
   void prepare(const svc::SDLView &view) const noexcept {
@@ -233,4 +186,6 @@ int main() {
   view.render(&renderer);
 
   std::this_thread::sleep_for(std::chrono::milliseconds{2000});
+
+  return EXIT_SUCCESS;
 }

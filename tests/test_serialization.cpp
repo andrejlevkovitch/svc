@@ -11,6 +11,8 @@
 #include "test_auxilary.hpp"
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/xml_iarchive.hpp>
+#include <boost/archive/xml_oarchive.hpp>
 #include <boost/serialization/export.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -29,13 +31,6 @@ public:
   virtual void visit(Item2 *) = 0;
 };
 } // namespace svc
-
-namespace boost::serialization {
-template <typename Archive>
-void serialize(Archive &ar, boost::uuids::uuid &uuid, const unsigned int) {
-  ar &uuid.data;
-}
-} // namespace boost::serialization
 
 class Item1 final : public svc::AbstractItem {
 public:
@@ -58,8 +53,10 @@ public:
 
   template <typename Archive>
   void serialize(Archive &ar, const unsigned int) {
-    ar &index;
-    ar &boost::serialization::base_object<svc::AbstractItem>(*this);
+    ar &BOOST_SERIALIZATION_NVP(index.data);
+    ar &boost::serialization::make_nvp(
+        "base",
+        boost::serialization::base_object<svc::AbstractItem>(*this));
   }
 
   boost::uuids::uuid index;
@@ -86,8 +83,10 @@ public:
 
   template <typename Archive>
   void serialize(Archive &ar, const unsigned int) {
-    ar &uuid;
-    ar &boost::serialization::base_object<svc::AbstractItem>(*this);
+    ar &boost::serialization::make_nvp("uuid", uuid.data);
+    ar &boost::serialization::make_nvp(
+        "base",
+        boost::serialization::base_object<svc::AbstractItem>(*this));
   }
 
   boost::uuids::uuid uuid;
@@ -142,8 +141,8 @@ public:
   StoredInfo info;
 };
 
-BOOST_CLASS_EXPORT_GUID(Item1, "Item1")
-BOOST_CLASS_EXPORT_GUID(Item2, "Item2")
+BOOST_CLASS_EXPORT(Item1)
+BOOST_CLASS_EXPORT(Item2)
 
 #define CHECK_INFO(newInfo, storedInfoa)                                       \
   {                                                                            \
@@ -234,8 +233,8 @@ SCENARIO("test Scene serialization", "[serialization]") {
       std::stringstream ss;
 
       {
-        boost::archive::text_oarchive ar{ss};
-        ar &                          scene;
+        boost::archive::xml_oarchive ar{ss};
+        ar &                         BOOST_SERIALIZATION_NVP(scene);
       }
 
       THEN("initially Scene not changed") {
@@ -253,8 +252,8 @@ SCENARIO("test Scene serialization", "[serialization]") {
         svc::Scene newScene;
 
         {
-          boost::archive::text_iarchive ar{ss};
-          ar &                          newScene;
+          boost::archive::xml_iarchive ar{ss};
+          ar &boost::serialization::make_nvp("scene", newScene);
         }
 
         THEN("info from new Scene must be equal to info from old scene") {

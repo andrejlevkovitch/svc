@@ -17,18 +17,14 @@
 
 namespace boost::serialization {
 template <typename Archive>
-void serialize(Archive &                           ar,
-               svc::Matrix &                       mat,
-               [[maybe_unused]] const unsigned int version) {
-  ar &mat.a;
-}
-
-template <typename Archive>
 void save(Archive &                           ar,
           const svc::AbstractItem &           item,
           [[maybe_unused]] const unsigned int version) {
-  ar &item.getMatrix();
-  ar &item.getChildren();
+  const svc::Matrix &               mat      = item.getMatrix();
+  const svc::AbstractItem::Children children = item.getChildren();
+
+  ar &make_nvp("mat", mat.a);
+  ar &BOOST_SERIALIZATION_NVP(children);
 }
 
 template <typename Archive>
@@ -37,12 +33,12 @@ void load(Archive &                           ar,
           [[maybe_unused]] const unsigned int version) {
   svc::Matrix   mat;
   svc::ItemList children;
-  ar &          mat;
-  ar &          children;
+  ar &          make_nvp("mat", mat.a);
+  ar &          BOOST_SERIALIZATION_NVP(children);
 
   item.setMatrix(std::move(mat));
   for (svc::ItemPtr &child : children) {
-    item.appendChild(child);
+    item.appendChild(std::move(child));
   }
 }
 
@@ -51,7 +47,7 @@ void save(Archive &                           ar,
           const svc::Scene &                  scene,
           [[maybe_unused]] const unsigned int version) {
   svc::ItemList rootItems = scene.rootItems();
-  ar &          rootItems;
+  ar &          BOOST_SERIALIZATION_NVP(rootItems);
 }
 
 template <typename Archive>
@@ -59,17 +55,17 @@ void load(Archive &                           ar,
           svc::Scene &                        scene,
           [[maybe_unused]] const unsigned int version) {
   svc::ItemList rootItems;
-  ar &          rootItems;
+  ar &          BOOST_SERIALIZATION_NVP(rootItems);
 
   for (svc::ItemPtr &item : rootItems) {
-    scene.appendItem(item);
+    scene.appendItem(std::move(item));
   }
 }
 } // namespace boost::serialization
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(svc::AbstractItem)
 BOOST_SERIALIZATION_SPLIT_FREE(svc::AbstractItem)
-BOOST_CLASS_VERSION(svc::AbstractItem, 1)
+BOOST_CLASS_VERSION(svc::AbstractItem, 2)
 
 BOOST_SERIALIZATION_SPLIT_FREE(svc::Scene)
-BOOST_CLASS_VERSION(svc::Scene, 1)
+BOOST_CLASS_VERSION(svc::Scene, 2)
